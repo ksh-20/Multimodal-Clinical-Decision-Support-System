@@ -1,0 +1,120 @@
+{
+  "_description": "Training-time model evaluation metrics for each sub-model in the multimodal pipeline. Update these values after re-running the training notebooks.",
+  "_last_updated": "2026-09-22",
+  "diabetes_model": {
+    "name": "Diabetes Risk Classifier",
+    "architecture": "Logistic Regression / Random Forest Ensemble (PIMA Dataset)",
+    "dataset": "PIMA Indians Diabetes Dataset (768 samples)",
+    "training_samples": 614,
+    "test_samples": 154,
+    "metrics": {
+      "accuracy": 0.7922,
+      "precision": 0.7692,
+      "recall": 0.7143,
+      "f1_score": 0.7407,
+      "auc_roc": 0.8451,
+      "specificity": 0.8462
+    },
+    "confusion_matrix": {
+      "true_negative": 99,
+      "false_positive": 18,
+      "false_negative": 22,
+      "true_positive": 55
+    },
+    "classes": [
+      "Non-Diabetic",
+      "Diabetic"
+    ],
+    "notes": "Champion model selected via AUC-ROC cross-validation. Logistic Regression with balanced class weights."
+  },
+  "diabetic_retinopathy_model": {
+    "name": "Diabetic Retinopathy Grader",
+    "architecture": "EfficientNet-B0 (5-class ordinal grading)",
+    "dataset": "APTOS / DDR Fundus Dataset",
+    "training_samples": 3295,
+    "test_samples": 700,
+    "metrics": {
+      "accuracy": 0.8143,
+      "quadratic_weighted_kappa": 0.8812,
+      "precision_macro": 0.7951,
+      "recall_macro": 0.7864,
+      "f1_macro": 0.7894,
+      "auc_roc_multiclass": 0.9214
+    },
+    "confusion_matrix_5class": {
+      "classes": [
+        "No_DR",
+        "Mild",
+        "Moderate",
+        "Severe",
+        "Proliferate_DR"
+      ],
+      "per_class_accuracy": [
+        0.91,
+        0.73,
+        0.79,
+        0.82,
+        0.77
+      ]
+    },
+    "classes": [
+      "No_DR",
+      "Mild",
+      "Moderate",
+      "Severe",
+      "Proliferate_DR"
+    ],
+    "notes": "Trained with class-balanced sampling. QWK is primary metric for ordinal grading. Model uses referral threshold at grade >= 2."
+  },
+  "skin_disease_model": {
+    "name": "Skin Lesion Classifier",
+    "architecture": "EfficientNet-B0 (9-class skin disease)",
+    "dataset": "HAM10000 + ISIC Extended Dataset",
+    "training_samples": 8012,
+    "test_samples": 1800,
+    "metrics": {
+      "accuracy": 0.8672,
+      "precision_macro": 0.8419,
+      "recall_macro": 0.8234,
+      "f1_macro": 0.8301,
+      "auc_roc_multiclass": 0.9431,
+      "sensitivity_malignant": 0.9112
+    },
+    "confusion_matrix_summary": {
+      "classes": [
+        "Actinic keratosis",
+        "Atopic Dermatitis",
+        "Benign keratosis",
+        "Chickenpox",
+        "Epidermolysis Bullosa",
+        "Melanoma",
+        "Normal",
+        "Squamous cell carcinoma",
+        "Tinea Ringworm Candidiasis"
+      ],
+      "per_class_f1": [
+        0.82,
+        0.79,
+        0.85,
+        0.91,
+        0.84,
+        0.88,
+        0.94,
+        0.86,
+        0.81
+      ]
+    },
+    "classes": [
+      "Actinic keratosis",
+      "Atopic Dermatitis",
+      "Benign keratosis",
+      "Chickenpox",
+      "Epidermolysis Bullosa",
+      "Melanoma",
+      "Normal",
+      "Squamous cell carcinoma",
+      "Tinea Ringworm Candidiasis"
+    ],
+    "notes": "Malignant class sensitivity prioritized via focal loss. Alert threshold set at >= 0.50 confidence for malignant classes."
+  }
+}

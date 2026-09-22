@@ -446,3 +446,100 @@ python run_pipeline.py --input samples/patient_example.json --no-images
 > 1. **Not Autonomous Diagnosis**: Outputs produced by this system (including ML confidence scores, knowledge graph pathways, and AI-generated summaries) do **not** constitute medical diagnoses, clinical treatment plans, or emergency directives.
 > 2. **Physician Oversight Required**: All findings must be independently validated by a licensed physician or specialist before clinical action.
 > 3. **Identifier-Free & Stateless**: The system deliberately does not store patient identification records, promoting patient privacy and compliance with data governance standards.
+
+
+---
+
+## Combined System Metrics
+
+The platform includes an integrated **System Performance Metrics** panel that aggregates metrics from all three models and the Knowledge Graph into a unified view.
+
+### How It Works
+
+After each analysis run, the frontend fetches `/api/metrics` which returns:
+
+| Metric Group | Description |
+|---|---|
+| **Combined System AUC-ROC** | Macro-average AUC-ROC across all 3 models |
+| **Combined F1-Macro** | Macro-average F1 score across all models |
+| **Combined Accuracy** | Macro-average accuracy across all models |
+| **KG Node Coverage** | % of knowledge graph nodes with at least one connection |
+| **Clinical Rules** | Total decision rules encoded in the KG |
+| **Cross-modal Edges** | KG edges linking nodes of different clinical modalities |
+
+### Updating Model Metrics After Retraining
+
+When you retrain any of the notebooks, update the corresponding block in `knowledge_layer/model_metrics.json`:
+
+```json
+{
+  "diabetes_model": {
+    "metrics": {
+      "accuracy": 0.7922,
+      "auc_roc": 0.8451,
+      "f1_score": 0.7407,
+      ...
+    }
+  },
+  "diabetic_retinopathy_model": {
+    "metrics": {
+      "accuracy": 0.8143,
+      "quadratic_weighted_kappa": 0.8812,
+      "auc_roc_multiclass": 0.9214,
+      ...
+    }
+  },
+  "skin_disease_model": {
+    "metrics": {
+      "accuracy": 0.8672,
+      "auc_roc_multiclass": 0.9431,
+      "f1_macro": 0.8301,
+      ...
+    }
+  }
+}
+```
+
+The `/api/metrics` endpoint reads this file at request time — no server restart needed after updating it.
+
+### Why KG-Integrated Metrics?
+
+The Knowledge Graph is the bridge that correlates findings across all three models. The **combined metrics** reflect not just individual model accuracy, but the **system-level confidence** in the multi-modal clinical decision pipeline:
+
+- A patient flagged by **2 or more models** (e.g., diabetic + severe DR) activates more KG edges — increasing clinical rule coverage
+- The cross-modal edge count tells you how many inter-disease connections were relevant to this patient's case
+- KG node coverage reflects how much of the clinical ontology was traversed for this patient's findings
+
+
+---
+
+## Research Paper Performance Metrics Report
+
+For research papers, academic evaluation, and thesis documentation, you need **fixed, reproducible system metrics** derived from training evaluation rather than per-patient inference results.
+
+### Generating the One-Time Report
+
+Run the standalone metrics generator:
+
+```bash
+# View in terminal
+python generate_metrics_report.py
+
+# View in terminal AND save to outputs/metrics_report.txt & outputs/metrics_table.csv
+python generate_metrics_report.py --save
+```
+
+### Outputs Generated
+
+| File | Purpose |
+|------|---------|
+| `outputs/metrics_report.txt` | Complete formatted evaluation report with visual bars, confusion matrices, KG topology, and methodology notes |
+| `outputs/metrics_table.csv` | Delimited summary table ready to import directly into Excel, LaTeX `pgfplotstable`, or paper draft tables |
+
+### Updating Metrics After Retraining
+
+When you retrain your models in your notebooks:
+1. Open [`model_metrics.json`](model_metrics.json).
+2. Update the `accuracy`, `auc_roc`, `f1_score`, and confusion matrix values with your latest test set evaluation results.
+3. Run `python generate_metrics_report.py --save` once.
+4. Your new fixed results and tables are immediately updated for your publication.

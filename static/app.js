@@ -275,7 +275,6 @@ async function executeAnalysis() {
     currentReport = report;
 
     renderReport(report);
-
   } catch (err) {
     alert('Error executing analysis: ' + err.message);
     console.error(err);
@@ -1187,6 +1186,8 @@ function formatMarkdownReply(text) {
     .replace(/\n\n/g, '<br><br>')
     .replace(/\n/g, '<br>');
 }
+
+
 
 // ============================================================================
 // 6. JSON Export

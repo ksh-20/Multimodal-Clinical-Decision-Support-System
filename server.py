@@ -243,6 +243,115 @@ def get_knowledge_graph() -> Dict[str, Any]:
     }
 
 
+
+@app.get("/api/metrics")
+def get_system_metrics() -> Dict[str, Any]:
+    """Returns combined system metrics from KG structure and individual model training metrics."""
+    kg = get_kg()
+    kg_metrics = {}
+
+    try:
+        total_nodes = kg.G.number_of_nodes()
+        total_edges = kg.G.number_of_edges()
+        total_rules = len(kg.clinical_rules)
+
+        with open(KG_JSON_PATH, "r", encoding="utf-8") as f:
+            raw_kg = json.load(f)
+
+        node_type_counts = {}
+        for n in raw_kg.get("nodes", []):
+            ntype = n.get("type", "other")
+            node_type_counts[ntype] = node_type_counts.get(ntype, 0) + 1
+
+        node_type_map = {n["id"]: n.get("type", "other") for n in raw_kg.get("nodes", [])}
+        cross_modal_edges = 0
+        for e in raw_kg.get("edges", []):
+            src_type = node_type_map.get(e.get("source", ""), "")
+            tgt_type = node_type_map.get(e.get("target", ""), "")
+            if src_type and tgt_type and src_type != tgt_type:
+                cross_modal_edges += 1
+
+        all_edges = raw_kg.get("edges", [])
+        connected_ids = set()
+        for e in all_edges:
+            connected_ids.add(e.get("source", ""))
+            connected_ids.add(e.get("target", ""))
+        nodes_with_edges = sum(1 for n in raw_kg.get("nodes", []) if n["id"] in connected_ids)
+        kg_coverage = round(nodes_with_edges / max(total_nodes, 1) * 100, 1)
+
+        kg_metrics = {
+            "total_nodes": total_nodes,
+            "total_edges": total_edges,
+            "total_rules": total_rules,
+            "node_type_distribution": node_type_counts,
+            "cross_modal_edges": cross_modal_edges,
+            "kg_coverage_pct": kg_coverage,
+            "nodes_with_connections": nodes_with_edges,
+        }
+    except Exception as e:
+        log.warning("KG metrics computation error: %s", e)
+        kg_metrics = {"error": str(e)}
+
+    model_metrics_path = BASE_DIR / "model_metrics.json"
+    model_metrics = {}
+    dm, dr, sk = {}, {}, {}
+    if model_metrics_path.exists():
+        try:
+            with open(model_metrics_path, "r", encoding="utf-8") as f:
+                raw_model_metrics = json.load(f)
+            model_metrics = {k: v for k, v in raw_model_metrics.items() if not k.startswith("_")}
+            dm = model_metrics.get("diabetes_model", {})
+            dr = model_metrics.get("diabetic_retinopathy_model", {})
+            sk = model_metrics.get("skin_disease_model", {})
+        except Exception as e:
+            log.warning("Model metrics load error: %s", e)
+            model_metrics = {"error": str(e)}
+
+    auc_values, f1_values, acc_values = [], [], []
+    try:
+        if dm.get("metrics", {}).get("auc_roc"):
+            auc_values.append(dm["metrics"]["auc_roc"])
+        if dr.get("metrics", {}).get("auc_roc_multiclass"):
+            auc_values.append(dr["metrics"]["auc_roc_multiclass"])
+        if sk.get("metrics", {}).get("auc_roc_multiclass"):
+            auc_values.append(sk["metrics"]["auc_roc_multiclass"])
+        if dm.get("metrics", {}).get("f1_score"):
+            f1_values.append(dm["metrics"]["f1_score"])
+        if dr.get("metrics", {}).get("f1_macro"):
+            f1_values.append(dr["metrics"]["f1_macro"])
+        if sk.get("metrics", {}).get("f1_macro"):
+            f1_values.append(sk["metrics"]["f1_macro"])
+        if dm.get("metrics", {}).get("accuracy"):
+            acc_values.append(dm["metrics"]["accuracy"])
+        if dr.get("metrics", {}).get("accuracy"):
+            acc_values.append(dr["metrics"]["accuracy"])
+        if sk.get("metrics", {}).get("accuracy"):
+            acc_values.append(sk["metrics"]["accuracy"])
+    except Exception:
+        pass
+
+    combined_auc = round(sum(auc_values) / len(auc_values), 4) if auc_values else None
+    combined_f1 = round(sum(f1_values) / len(f1_values), 4) if f1_values else None
+    combined_accuracy = round(sum(acc_values) / len(acc_values), 4) if acc_values else None
+
+    return {
+        "knowledge_graph": kg_metrics,
+        "model_metrics": model_metrics,
+        "combined": {
+            "system_auc_roc": combined_auc,
+            "system_f1_macro": combined_f1,
+            "system_accuracy": combined_accuracy,
+            "models_evaluated": len(auc_values),
+            "pipeline_version": "1.0.0",
+            "description": (
+                "Combined metrics are macro-averaged across all evaluated sub-models. "
+                "AUC-ROC is threshold-independent and primary for clinical class-imbalanced datasets. "
+                "Update model_metrics.json after retraining notebooks to reflect new values."
+            ),
+        },
+    }
+
+
 def _compute_active_subgraph(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Computes which nodes and edges in the KG are active given the current findings."""
     active_node_ids = set()
