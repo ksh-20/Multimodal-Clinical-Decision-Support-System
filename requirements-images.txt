@@ -1,0 +1,12 @@
+# Install PyTorch separately because the correct index URL depends on your CUDA version.
+# CPU-only (safe for all machines):
+#   pip install -r requirements-images.txt --extra-index-url https://download.pytorch.org/whl/cpu
+#
+# CUDA 11.8:
+#   pip install -r requirements-images.txt --extra-index-url https://download.pytorch.org/whl/cu118
+#
+# CUDA 12.1:
+#   pip install -r requirements-images.txt --extra-index-url https://download.pytorch.org/whl/cu121
+
+torch>=2.1
+torchvision>=0.16

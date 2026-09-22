@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multimodal Clinical Decision Support</title>
+  <link rel="stylesheet" href="/static/style.css?v=2.3">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-badge">AI Health</div>
+        <div class="brand-title">
+          <h1>Clinical Intelligence Platform</h1>
+          <p>Multimodal Deep Learning &bull; Medical Knowledge Graph &bull; AI Decision Support</p>
+        </div>
+      </div>
+      <div class="system-status" id="systemStatus">
+        <div class="status-pill" id="badge-diabetes">
+          <span class="status-dot"></span> Diabetes Model
+        </div>
+        <div class="status-pill" id="badge-dr">
+          <span class="status-dot"></span> DR EfficientNet
+        </div>
+        <div class="status-pill" id="badge-skin">
+          <span class="status-dot"></span> Skin EfficientNet
+        </div>
+        <div class="status-pill" id="badge-kg">
+          <span class="status-dot"></span> Medical KG
+        </div>
+        <div class="status-pill" id="badge-llm">
+          <span class="status-dot"></span> AI Reasoning Engine
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="workspace-grid">
+      <!-- Left Panel: Patient Intake & Diagnostics -->
+      <section class="glass-card intake-card">
+        <div class="card-header">
+          <h2 class="card-title">Patient Intake &amp; Diagnostics</h2>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+          <button type="button" class="btn-secondary" id="btnLoadSample">
+            Load Sample Patient
+          </button>
+          <label class="btn-secondary" style="cursor: pointer;">
+            Import JSON
+            <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+          </label>
+          <button type="button" class="btn-secondary" id="btnToggleJsonGuide">
+            JSON Format Guide
+          </button>
+          <button type="button" class="btn-secondary" id="btnResetForm">
+            Reset Form
+          </button>
+        </div>
+
+        <!-- Collapsible JSON Format Guide -->
+        <div class="json-guide-panel" id="jsonGuidePanel" style="display: none;">
+          <div class="json-guide-header">
+            <div>
+              <strong>Expected JSON Upload Format</strong>
+              <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">
+                Upload a .json file structured with patient demographics and laboratory biomarkers.
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button type="button" class="btn-action-small" id="btnCopyJsonTemplate">Copy Template</button>
+              <a href="/api/download-template" class="btn-action-small" download="patient_template.json">Download .json</a>
+            </div>
+          </div>
+          <pre class="json-code-block" id="jsonTemplateCodeBlock"><code>{
+  "patient": {
+    "age": 55,
+    "sex": "female",
+    "clinical_notes": "Patient presents with fatigue, polyuria, and increased thirst. Mother had type 2 diabetes.",
+    "known_conditions": ["hypertension"],
+    "medications": ["metformin", "amlodipine"]
+  },
+  "tabular_data": {
+    "Pregnancies": 3,
+    "Glucose": 148,
+    "BloodPressure": 72,
+    "SkinThickness": 35,
+    "Insulin": 0,
+    "BMI": 33.6,
+    "DiabetesPedigreeFunction": 0.627,
+    "Age": 55
+  }
+}</code></pre>
+          <div class="json-field-table-container">
+            <table class="json-field-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Type</th>
+                  <th>Clinical Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>patient.age</code></td>
+                  <td>integer</td>
+                  <td>Patient age in years (1 – 120)</td>
+                </tr>
+                <tr>
+                  <td><code>patient.sex</code></td>
+                  <td>string</td>
+                  <td>"female", "male", or "other"</td>
+                </tr>
+                <tr>
+                  <td><code>patient.clinical_notes</code></td>
+                  <td>string</td>
+                  <td>Patient symptoms, history, and presentation notes</td>
+                </tr>
+                <tr>
+                  <td><code>patient.known_conditions</code></td>
+                  <td>array</td>
+                  <td>Diagnosed conditions (e.g. ["hypertension"])</td>
+                </tr>
+                <tr>
+                  <td><code>patient.medications</code></td>
+                  <td>array</td>
+                  <td>Current medications (e.g. ["metformin"])</td>
+                </tr>
+                <tr>
+                  <td><code>tabular_data.Glucose</code></td>
+                  <td>number</td>
+                  <td>Plasma glucose concentration (mg/dL) — critical biomarker</td>
+                </tr>
+                <tr>
+                  <td><code>tabular_data.BloodPressure</code></td>
+                  <td>number</td>
+                  <td>Diastolic blood pressure (mm Hg)</td>
+                </tr>
+                <tr>
+                  <td><code>tabular_data.BMI</code></td>
+                  <td>number</td>
+                  <td>Body Mass Index (kg/m&sup2;)</td>
+                </tr>
+                <tr>
+                  <td><code>tabular_data.Insulin</code></td>
+                  <td>number</td>
+                  <td>2-Hour serum insulin (&mu;U/mL, enter 0 if unknown)</td>
+                </tr>
+                <tr>
+                  <td><code>tabular_data.SkinThickness</code></td>
+                  <td>number</td>
+                  <td>Triceps skin fold thickness (mm, enter 0 if unknown)</td>
+                </tr>
+                <tr>
+                  <td><code>tabular_data.DiabetesPedigreeFunction</code></td>
+                  <td>number</td>
+                  <td>Genetic diabetes risk function score (0.05 – 2.5)</td>
+                </tr>
+                <tr>
+                  <td><code>tabular_data.Pregnancies</code></td>
+                  <td>integer</td>
+                  <td>Number of pregnancies (0 for male or nulliparous)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <form id="analysisForm">
+          <!-- 1. Demographics & History -->
+          <div class="form-section">
+            <div class="section-label">1. Demographics &amp; Clinical History</div>
+            <div class="input-row">
+              <div class="input-group">
+                <label for="age">Age</label>
+                <input type="number" id="age" name="age" value="55" min="1" max="120" required>
+              </div>
+              <div class="input-group">
+                <label for="sex">Sex</label>
+                <select id="sex" name="sex">
+                  <option value="female" selected>Female</option>
+                  <option value="male">Male</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="input-row">
+              <div class="input-group">
+                <label for="known_conditions">Known Conditions</label>
+                <input type="text" id="known_conditions" name="known_conditions" value="hypertension" placeholder="e.g. hypertension, dyslipidemia">
+              </div>
+              <div class="input-group">
+                <label for="medications">Current Medications</label>
+                <input type="text" id="medications" name="medications" value="metformin, amlodipine" placeholder="e.g. metformin, lisinopril">
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="clinical_notes">Clinical Symptoms &amp; History Notes</label>
+              <textarea id="clinical_notes" name="clinical_notes" rows="2" placeholder="Clinical presentation...">Patient presents with fatigue, polyuria, and increased thirst over past 3 months. Mother had type 2 diabetes.</textarea>
+            </div>
+          </div>
+
+          <!-- 2. Laboratory Biomarkers -->
+          <div class="form-section">
+            <div class="section-label">
+              <span>2. Clinical Biomarkers (PIMA)</span>
+              <span id="glucoseWarning" class="input-badge warn">Glucose: 148 mg/dL</span>
+            </div>
+            <div class="input-row three-col">
+              <div class="input-group">
+                <label for="glucose">Glucose (mg/dL)</label>
+                <input type="number" id="glucose" name="glucose" value="148" step="1" required>
+              </div>
+              <div class="input-group">
+                <label for="blood_pressure">BP (mm Hg)</label>
+                <input type="number" id="blood_pressure" name="blood_pressure" value="72" step="1" required>
+              </div>
+              <div class="input-group">
+                <label for="bmi">BMI (kg/m&sup2;)</label>
+                <input type="number" id="bmi" name="bmi" value="33.6" step="0.1" required>
+              </div>
+            </div>
+            <div class="input-row three-col">
+              <div class="input-group">
+                <label for="insulin">Insulin (&mu;U/mL)</label>
+                <input type="number" id="insulin" name="insulin" value="0" step="1" placeholder="0 = unknown">
+              </div>
+              <div class="input-group">
+                <label for="skin_thickness">Skin Fold (mm)</label>
+                <input type="number" id="skin_thickness" name="skin_thickness" value="35" step="1">
+              </div>
+              <div class="input-group">
+                <label for="dpf">Diabetes Pedigree</label>
+                <input type="number" id="dpf" name="dpf" value="0.627" step="0.001">
+              </div>
+            </div>
+            <div class="input-row">
+              <div class="input-group">
+                <label for="pregnancies">Pregnancies</label>
+                <input type="number" id="pregnancies" name="pregnancies" value="3" min="0">
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Diagnostic Image Uploads (User uploads their own) -->
+          <div class="form-section">
+            <div class="section-label">
+              <span>3. Diagnostic Image Uploads</span>
+              <span style="font-size: 0.72rem; color: var(--text-dim); text-transform: none; font-weight: normal;">Upload patient imaging scans</span>
+            </div>
+            <div class="image-upload-grid">
+              <!-- Retinal Fundus Image Dropzone -->
+              <div class="dropzone-card" id="eyeDropzone">
+                <span class="dropzone-badge" id="eyeBadge" style="display: none;">Image Ready</span>
+                <div class="dropzone-label-tag">Retinal Fundus Scan</div>
+                <div class="dropzone-title">Upload Retinal Scan</div>
+                <div class="dropzone-desc">For Diabetic Retinopathy screening (.png, .jpg)</div>
+                <input type="file" id="eyeFileInput" accept="image/*" style="display: none;">
+                <img id="eyePreview" class="dropzone-preview" alt="Eye Preview">
+                <button type="button" class="btn-clear-image" id="btnClearEye" style="display: none;">Remove Image</button>
+              </div>
+
+              <!-- Skin Lesion Image Dropzone -->
+              <div class="dropzone-card" id="skinDropzone">
+                <span class="dropzone-badge" id="skinBadge" style="display: none;">Image Ready</span>
+                <div class="dropzone-label-tag">Dermoscopic Lesion</div>
+                <div class="dropzone-title">Upload Skin Image</div>
+                <div class="dropzone-desc">For Skin Lesion &amp; Neoplasm analysis (.png, .jpg)</div>
+                <input type="file" id="skinFileInput" accept="image/*" style="display: none;">
+                <img id="skinPreview" class="dropzone-preview" alt="Skin Preview">
+                <button type="button" class="btn-clear-image" id="btnClearSkin" style="display: none;">Remove Image</button>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary" id="btnAnalyze">
+            <span id="btnText">Run Multimodal Clinical Analysis</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Right Panel: Clinical Results, Knowledge Graph & Chatbot -->
+      <section class="results-workspace">
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-state-badge">DECISION SUPPORT READY</div>
+          <h3>Ready for Clinical Analysis</h3>
+          <p>
+            Upload patient data using the form on the left (or click <strong>"Load Sample Patient"</strong> and upload patient diagnostic imaging scans), then click <strong>"Run Multimodal Clinical Analysis"</strong>.
+          </p>
+        </div>
+
+        <!-- Live Results Container -->
+        <div id="resultsContainer" style="display: none; display: flex; flex-direction: column; gap: 1.35rem;">
+          
+          <!-- 1. Triage Alert Banner -->
+          <div class="alert-banner" id="alertBanner">
+            <div class="alert-content">
+              <div class="alert-tag" id="alertBannerTag">TRIAGE ALERT</div>
+              <h4 id="alertBannerTitle">Clinical Triage Alerts Triggered</h4>
+              <p id="alertBannerSubtitle" style="font-size: 0.85rem; color: #cbd5e1;"></p>
+              <ul class="alert-list" id="alertBannerList"></ul>
+            </div>
+          </div>
+
+          <!-- 2. AI Clinical Synthesis -->
+          <div class="glass-card ai-summary-card">
+            <div class="card-header">
+              <h3 class="card-title">AI Clinical Synthesis</h3>
+              <span class="ai-badge" id="confidenceBadge">Confidence: High</span>
+            </div>
+            <p class="ai-text" id="clinicalSummaryText"></p>
+            <div class="finding-notes" id="clinicalReasoningNotes" style="margin-bottom: 1rem;"></div>
+
+            <div class="section-label" style="margin-top: 1rem;">Prioritized Clinical Recommendations</div>
+            <div class="recommendations-list" id="recommendationsList"></div>
+          </div>
+
+          <!-- 3. Multi-Model Predictions Grid -->
+          <div class="findings-grid" id="findingsGrid"></div>
+
+          <!-- 4. Interactive Knowledge Graph Visualizer (Full Clean View, Zoom, Pan, Fullscreen) -->
+          <div class="glass-card kg-section" id="kgCard">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Medical Knowledge Graph &amp; Clinical Decision Pathways</h3>
+                <p style="font-size: 0.78rem; color: var(--text-dim); margin-top: 2px;">
+                  Complete 51-node medical ontology showing active clinical correlations and referral paths.
+                </p>
+              </div>
+              <div class="kg-header-controls">
+                <div class="kg-zoom-group">
+                  <button type="button" class="btn-ctrl" id="btnKgZoomIn" title="Zoom In">+</button>
+                  <button type="button" class="btn-ctrl" id="btnKgZoomOut" title="Zoom Out">&minus;</button>
+                  <button type="button" class="btn-ctrl" id="btnResetKgView" title="Reset Camera">Reset</button>
+                </div>
+                <button type="button" class="btn-view-popup" id="btnKgView" onclick="openKgModal()" title="Open Knowledge Graph in Popup View">
+                  View
+                </button>
+              </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="kg-legend">
+              <div class="legend-item"><span class="legend-dot" style="background: #ef4444;"></span> Disease</div>
+              <div class="legend-item"><span class="legend-dot" style="background: #38bdf8;"></span> Model Finding</div>
+              <div class="legend-item"><span class="legend-dot" style="background: #f59e0b;"></span> Risk Factor</div>
+              <div class="legend-item"><span class="legend-dot" style="background: #ec4899;"></span> Complication</div>
+              <div class="legend-item"><span class="legend-dot" style="background: #10b981;"></span> Medication</div>
+              <div class="legend-item"><span class="legend-dot" style="background: #a855f7;"></span> Recommendation</div>
+              <div class="legend-item" style="margin-left: auto; color: var(--accent-cyan);">
+                <span class="active-pulse-dot"></span> Active Clinical Pathway
+              </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="canvas-container" id="kgCanvasContainer">
+              <canvas id="kgCanvas"></canvas>
+              <div class="canvas-overlay-hint">
+                Use mouse wheel to zoom &bull; Click &amp; drag background to pan &bull; Drag nodes to reposition
+              </div>
+              <!-- Floating Node Details Panel -->
+              <div class="kg-node-tooltip" id="kgTooltip" style="display: none;"></div>
+            </div>
+
+            <div class="active-path-summary" id="kgActivePathSummary">
+              <strong>Active Clinical Decision Pathways:</strong> Run analysis to highlight correlated findings.
+            </div>
+          </div>
+
+          <!-- 5. Interactive Doctor Follow-up Chatbot Assistant -->
+          <div class="chat-container">
+            <div class="card-header" style="padding: 1rem 1.25rem; margin-bottom: 0; background: rgba(15, 23, 42, 0.85);">
+              <h3 class="card-title">Clinical AI Follow-up Assistant</h3>
+              <span class="status-pill online">
+                <span class="status-dot"></span> Clinical Decision Support
+              </span>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+              <div class="chat-bubble assistant">
+                Hello. I have full visibility into the multimodal clinical findings, diagnostic predictions, and Knowledge Graph correlations for this patient.
+                <br><br>
+                You can ask any follow-up questions regarding the diagnosis, urgency of specialist referrals, or recommended clinical next steps.
+              </div>
+            </div>
+
+            <!-- Quick prompt chips (Dynamic from Medical Knowledge Graph) -->
+            <div class="chat-quick-prompts" id="chatQuickPrompts"></div>
+
+            <div class="chat-input-bar">
+              <input type="text" id="chatInput" placeholder="Ask a follow-up question regarding the patient's diagnosis..." autocomplete="off">
+              <button type="button" class="btn-send" id="btnChatSend">Send</button>
+            </div>
+          </div>
+
+          <!-- 6. Export Actions -->
+          <div class="export-bar">
+            <button type="button" class="btn-secondary" id="btnDownloadJson">
+              Download JSON Report
+            </button>
+            <button type="button" class="btn-secondary" id="btnPrintReport">
+              Print / Save PDF
+            </button>
+          </div>
+
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Full-Screen Knowledge Graph Modal Popup -->
+  <div class="kg-modal-overlay" id="kgFullscreenModal" style="display: none;">
+    <div class="kg-modal-content">
+      <!-- Top Modal Header -->
+      <div class="kg-modal-header">
+        <div class="kg-modal-header-left">
+          <h2 class="kg-modal-title">Medical Knowledge Graph</h2>
+          <span class="kg-modal-badge">Interactive Decision Pathways</span>
+        </div>
+        
+        <div class="kg-modal-header-controls">
+          <div class="kg-zoom-group">
+            <button type="button" class="btn-ctrl" id="btnModalZoomIn" title="Zoom In">+</button>
+            <button type="button" class="btn-ctrl" id="btnModalZoomOut" title="Zoom Out">&minus;</button>
+            <button type="button" class="btn-ctrl" id="btnModalReset" title="Fit to View">Fit View</button>
+          </div>
+          
+          <!-- Cross button on top right corner to exit -->
+          <button type="button" class="kg-modal-close-btn" id="btnCloseKgModal" onclick="closeKgModal()" title="Close (Esc)" aria-label="Close">
+            &times;
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Legend -->
+      <div class="kg-legend kg-modal-legend">
+        <div class="legend-item"><span class="legend-dot" style="background: #ef4444;"></span> Disease</div>
+        <div class="legend-item"><span class="legend-dot" style="background: #38bdf8;"></span> Model Finding</div>
+        <div class="legend-item"><span class="legend-dot" style="background: #f59e0b;"></span> Risk Factor</div>
+        <div class="legend-item"><span class="legend-dot" style="background: #ec4899;"></span> Complication</div>
+        <div class="legend-item"><span class="legend-dot" style="background: #10b981;"></span> Medication</div>
+        <div class="legend-item"><span class="legend-dot" style="background: #a855f7;"></span> Recommendation</div>
+        <div class="legend-item" style="margin-left: auto; color: var(--accent-cyan);">
+          <span class="active-pulse-dot"></span> Active Clinical Pathway
+        </div>
+      </div>
+
+      <!-- Canvas Body Container -->
+      <div class="kg-modal-body" id="kgModalBody">
+        <canvas id="kgModalCanvas"></canvas>
+        <div class="canvas-overlay-hint">
+          Use mouse wheel to zoom &bull; Click &amp; drag background to pan &bull; Drag nodes to reposition
+        </div>
+        <div class="kg-node-tooltip" id="kgModalTooltip" style="display: none;"></div>
+      </div>
+
+      <!-- Modal Footer Hints -->
+      <div class="kg-modal-footer">
+        <span>Use mouse wheel to zoom &bull; Click &amp; drag background to pan &bull; Drag nodes to reposition &bull; Press <strong>Esc</strong> or click the <strong>&times;</strong> button on the top right to exit</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=2.3"></script>
+</body>
+</html>
