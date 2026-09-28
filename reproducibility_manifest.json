@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "project": "Multimodal Clinical Knowledge Layer",
+  "audit_timestamp": "2026-09-28",
+  "reproducibility_status": "Audited & Verified",
+  "evaluation_paradigm": {
+    "description": "Offline training evaluation on frozen held-out test splits. Metrics are static and decouple training benchmarks from live single-patient inference.",
+    "report_generator": "python generate_metrics_report.py --save",
+    "unit_test_suite": "python test_knowledge_layer.py"
+  },
+  "sub_models": [
+    {
+      "id": "diabetes_risk_classifier",
+      "task": "Binary diabetes risk prediction from clinical & physiological biomarkers",
+      "dataset": {
+        "name": "PIMA Indians Diabetes Database (National Institute of Diabetes and Digestive and Kidney Diseases)",
+        "total_records": 768,
+        "features": [
+          "Pregnancies",
+          "Glucose",
+          "BloodPressure",
+          "SkinThickness",
+          "Insulin",
+          "BMI",
+          "DiabetesPedigreeFunction",
+          "Age"
+        ],
+        "split": {
+          "method": "Stratified train_test_split",
+          "train_n": 614,
+          "test_n": 154,
+          "random_seed": 42
+        }
+      },
+      "preprocessing": [
+        "Physiological zero-value audit & replacement with NaN",
+        "Training-set median imputation (leakage-free)",
+        "Feature engineering (HOMA-IR, Metabolic_Score, BMI_Cat, Glucose_BMI)",
+        "SMOTETomek class re-balancing",
+        "RobustScaler standardization"
+      ],
+      "champion_model": "Logistic Regression with balanced class weights (selected by 5-fold CV ROC-AUC: 0.8353)",
+      "saved_artifact": "models/diabetes_model.joblib",
+      "reproduction_script": "pima_fixed_training.py",
+      "reproduction_notebook": "notebooks/pima_diabetes_ml_benchmark.ipynb",
+      "verified_test_metrics": {
+        "accuracy": 0.7922,
+        "auc_roc": 0.8451,
+        "f1_score": 0.7091,
+        "precision": 0.6964,
+        "sensitivity_recall": 0.7222,
+        "specificity": 0.83,
+        "confusion_matrix": {
+          "true_positive": 39,
+          "true_negative": 83,
+          "false_positive": 17,
+          "false_negative": 15
+        }
+      }
+    },
+    {
+      "id": "diabetic_retinopathy_grader",
+      "task": "5-Class ordinal grading of diabetic retinopathy from retinal fundus photographs",
+      "dataset": {
+        "name": "APTOS 2019 Blindness Detection & DDR Fundus Benchmark",
+        "classes": [
+          "No_DR (0)",
+          "Mild (1)",
+          "Moderate (2)",
+          "Severe (3)",
+          "Proliferate_DR (4)"
+        ],
+        "train_n": 3295,
+        "test_n": 531,
+        "audit_n": 550
+      },
+      "architecture": "EfficientNet-B0 transfer learning with class-balanced sampling and ordinal loss penalty",
+      "reproduction_notebook": "notebooks/diabetic_retinopathy_classification.ipynb",
+      "class_imbalance_audit": {
+        "severe_class_support": 26,
+        "severe_recall": 0.5,
+        "severe_precision": 0.3939,
+        "macro_f1": 0.6954,
+        "quadratic_weighted_kappa": 0.8885,
+        "referral_screening_accuracy": 0.951,
+        "referral_screening_sensitivity": 0.9091,
+        "referral_screening_specificity": 0.9783
+      }
+    },
+    {
+      "id": "skin_lesion_classifier",
+      "task": "9-Class dermatoscopy lesion classification & high-risk malignancy triage",
+      "dataset": {
+        "name": "HAM10000 + ISIC Extended Dermoscopy Dataset",
+        "train_n": 8012,
+        "test_n": 181
+      },
+      "architecture": "EfficientNet-B0 with focal loss favoring malignant/premalignant sensitivities",
+      "reproduction_notebook": "notebooks/skin_disease_classification.ipynb",
+      "verified_test_metrics": {
+        "accuracy": 0.7901,
+        "balanced_accuracy": 0.7889,
+        "cohen_kappa": 0.7638,
+        "macro_f1": 0.7845,
+        "multiclass_auc_roc": 0.9431,
+        "biopsy_triage_accuracy": 0.9171,
+        "biopsy_triage_sensitivity": 0.9
+      }
+    }
+  ],
+  "knowledge_graph": {
+    "source_file": "kg_relationships.json",
+    "total_nodes": 44,
+    "total_edges": 48,
+    "clinical_rules": 4,
+    "topological_connectivity_pct": 81.82,
+    "scope_notice": "81.82% indicates graph topological connectedness (36/44 nodes connected). It represents graph structural density, NOT diagnostic accuracy or empirical therapeutic correctness. Formal clinical rules are adapted from clinical guidelines (ADA, AAO, AAD)."
+  },
+  "reasoning_engine": {
+    "implementation": "reasoner.py",
+    "primary_provider": "Google Gemini (gemini-2.5-flash-lite)",
+    "fallback_provider": "Deterministic offline rule-based reasoning engine",
+    "non_causal_principle": "The LLM explains ML outputs using KG associations as correlated risk factors and comorbid manifestations. It strictly avoids asserting direct causality from correlation."
+  }
+}

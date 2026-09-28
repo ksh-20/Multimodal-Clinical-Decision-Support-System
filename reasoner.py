@@ -1,16 +1,25 @@
 """
 reasoner.py — LLM reasoning step (Google Gemini) + offline rule-based fallback.
 
-Provider: Google Gemini only (google-generativeai SDK).
-Model:    gemini-2.5-flash-lite  (configurable via GEMINI_MODEL in .env)
+Architecture:
+  ML Models (Vision / Tabular Classifiers)
+      ↓ Predictions & Probabilities
+  Knowledge Graph Query Engine
+      ↓ Structured Evidence Subgraph & Clinical Rules
+  LLM / Offline Clinical Reasoner
+      ↓ Interpretable Evidence Synthesis & Guideline Guidance
+  Structured Decision-Support Summary
 
-Behaviour:
-  - If GEMINI_API_KEY is set  → calls Gemini API, validates response.
-  - If GEMINI_API_KEY missing → automatically falls back to offline rule-based reasoning.
-  - Any API error             → automatically falls back to offline reasoning.
+Role of the LLM:
+  The LLM does NOT diagnose diseases directly. It acts as an interpretable
+  evidence-synthesis agent that translates ML model outputs and symbolic
+  Knowledge Graph associations into conservative, guideline-compliant clinical text.
 
-The offline fallback uses the knowledge graph context + clinical rules to
-produce the same output structure without any API call.
+Non-Causal Association Principle:
+  Retrieved associations from the Knowledge Graph (e.g., Diabetes <-> Retinopathy)
+  represent documented clinical co-occurrences and shared systemic risk factors,
+  NOT direct causal determinism. The reasoner strictly avoids conflating correlation
+  with single-cause causality.
 """
 from __future__ import annotations
 
@@ -31,19 +40,24 @@ log = logging.getLogger(__name__)
 
 
 _SYSTEM_PROMPT = textwrap.dedent("""
-You are a clinical decision-support assistant integrated into a multimodal AI pipeline.
-You receive structured findings from three validated ML models and a knowledge graph context.
-Your task is to synthesise these into a coherent, conservative clinical summary.
+You are a clinical decision-support and evidence-synthesis assistant integrated into a multimodal AI pipeline.
+You receive structured findings from validated ML sub-models and an evidence subgraph from a curated Knowledge Graph.
+Your task is to synthesize these into a coherent, conservative, guideline-grounded clinical explanation.
+
+Architectural Role:
+- You do NOT diagnose patients directly. Diagnosis is reserved for licensed healthcare providers.
+- You explain ML model predictions in the context of clinical guidelines and Knowledge Graph associations.
 
 Rules you MUST follow:
-1. Never diagnose. Use language like "the model suggests", "screening finding indicates", "warrants further evaluation".
-2. Always recommend confirmatory testing before any clinical action.
-3. For skin lesion findings flagged as malignant/premalignant, always recommend dermatologist review.
-4. For DR grade >= 2, always recommend ophthalmology referral.
-5. Be concise. The summary must be readable by a non-specialist GP.
+1. Never assert definitive diagnoses. Use conservative framing: "the model suggests", "screening finding indicates", "warrants further evaluation".
+2. Always recommend confirmatory laboratory or specialist testing before any clinical action.
+3. For skin lesion findings flagged as malignant/premalignant, always recommend urgent dermatologist biopsy review.
+4. For DR grade >= 2, always recommend ophthalmology referral within established screening intervals.
+5. Non-Causal Association Principle: You MUST NOT rewrite retrieved Knowledge Graph associations or correlations as direct causal relationships. Frame co-occurring findings as correlated clinical risk factors, comorbid manifestations, or shared systemic pathways (e.g., microvascular changes associated with chronic hyperglycemia).
+6. Be concise, objective, and clear. The summary must be easily digestible by a general practitioner (GP).
 7. Respond ONLY with a JSON object with exactly these keys:
    {
-     "reasoning": "<string: 2-5 sentences — evidence trail>",
+     "reasoning": "<string: 2-5 sentences — evidence trail and non-causal clinical synthesis>",
      "clinical_summary": "<string: 1-3 sentences in plain language>",
      "alerts": ["<string>", ...],
      "recommendations": ["<string>", ...],
@@ -57,11 +71,20 @@ def _build_user_prompt(
     findings: List[Finding],
     kg_context: Dict[str, Any],
 ) -> str:
+    pat_str = json.dumps(patient.to_dict(), indent=2)
+    find_str = json.dumps([f.to_dict() for f in findings], indent=2)
+    kg_str = json.dumps(kg_context, indent=2, default=str)
     return (
-        f"PATIENT CONTEXT:\n{json.dumps(patient.to_dict(), indent=2)}\n\n"
-        f"ML MODEL FINDINGS:\n{json.dumps([f.to_dict() for f in findings], indent=2)}\n\n"
-        f"KNOWLEDGE GRAPH CONTEXT:\n{json.dumps(kg_context, indent=2, default=str)}\n\n"
-        "Synthesise the above into the required JSON response."
+        "PATIENT CONTEXT:\n"
+        + pat_str
+        + "\n\n"
+        + "ML MODEL FINDINGS (Primary Model Outputs):\n"
+        + find_str
+        + "\n\n"
+        + "KNOWLEDGE GRAPH EVIDENCE SUBGRAPH (Correlated Guidelines & Associations):\n"
+        + kg_str
+        + "\n\n"
+        + "Synthesise the above into the required JSON response following the Non-Causal Association Principle."
     )
 
 
@@ -126,7 +149,7 @@ def _offline_reason(
         if dm.alert:
             reasoning_parts.append(
                 f"Diabetes screening model suggests elevated risk (probability {dm.confidence:.1%}). "
-                "Confirmatory fasting glucose and HbA1c are required."
+                "Confirmatory fasting plasma glucose and HbA1c testing are required."
             )
             recommendations.extend([
                 "Order fasting plasma glucose and HbA1c to confirm diabetes diagnosis.",
@@ -146,8 +169,8 @@ def _offline_reason(
         grade = dr.metadata.get("grade", 0)
         referrable = dr.metadata.get("referrable", False)
         reasoning_parts.append(
-            f"Fundus analysis: {dr.label} (Grade {grade}, conf={dr.confidence:.1%}). "
-            f"Referrable: {'Yes' if referrable else 'No'}."
+            f"Retinal fundus analysis: {dr.label} (Grade {grade}, conf={dr.confidence:.1%}). "
+            f"Referrable status: {'Yes (Urgent Evaluation)' if referrable else 'No (Routine Monitoring)'}."
         )
         recommendations.extend(kg_context.get("dr", {}).get("recommendations", []))
         if grade == 4:
@@ -161,15 +184,24 @@ def _offline_reason(
         malignant_pot = kg_context.get("skin", {}).get("malignant_potential", "unknown")
         reasoning_parts.append(
             f"Skin lesion model predicts {sk.label} "
-            f"(conf={sk.confidence:.1%}, malignant potential: {malignant_pot}). "
-            "Note: test set was small (~15 samples/class); estimates carry wide uncertainty."
+            f"(conf={sk.confidence:.1%}, risk classification: {malignant_pot}). "
+            "Note: dermatoscopy test set had ~20 samples/class; estimates carry clinical uncertainty."
         )
         recommendations.extend(kg_context.get("skin", {}).get("recommendations", []))
         if sk.alert:
             alerts.append(
-                f"Malignant/premalignant skin lesion predicted ({sk.label}): "
-                "urgent dermatology biopsy recommended."
+                f"High-risk skin lesion predicted ({sk.label}): "
+                "urgent dermatology biopsy and histopathology recommended."
             )
+
+    # Multi-finding non-causal correlation synthesis
+    active_count = sum(1 for f in [dm, dr, sk] if f and f.alert)
+    if active_count >= 2:
+        reasoning_parts.append(
+            "Clinical Synthesis Note: Multiple comorbid screening alerts detected across organ systems. "
+            "These findings represent correlated clinical manifestations and shared microvascular/systemic risk factors, "
+            "not direct single-cause causality. Multidisciplinary referral is recommended."
+        )
 
     if kg_context.get("hypertension_note"):
         recommendations.append(kg_context["hypertension_note"])

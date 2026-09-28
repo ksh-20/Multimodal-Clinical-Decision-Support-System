@@ -450,96 +450,84 @@ python run_pipeline.py --input samples/patient_example.json --no-images
 
 ---
 
-## Combined System Metrics
+---
 
-The platform includes an integrated **System Performance Metrics** panel that aggregates metrics from all three models and the Knowledge Graph into a unified view.
+## Clinical Architecture & Role of the LLM
 
-### How It Works
+A fundamental design principle of this platform is the strict separation between **statistical pattern recognition** and **interpretable clinical reasoning**:
 
-After each analysis run, the frontend fetches `/api/metrics` which returns:
-
-| Metric Group | Description |
-|---|---|
-| **Combined System AUC-ROC** | Macro-average AUC-ROC across all 3 models |
-| **Combined F1-Macro** | Macro-average F1 score across all models |
-| **Combined Accuracy** | Macro-average accuracy across all models |
-| **KG Node Coverage** | % of knowledge graph nodes with at least one connection |
-| **Clinical Rules** | Total decision rules encoded in the KG |
-| **Cross-modal Edges** | KG edges linking nodes of different clinical modalities |
-
-### Updating Model Metrics After Retraining
-
-When you retrain any of the notebooks, update the corresponding block in `knowledge_layer/model_metrics.json`:
-
-```json
-{
-  "diabetes_model": {
-    "metrics": {
-      "accuracy": 0.7922,
-      "auc_roc": 0.8451,
-      "f1_score": 0.7407,
-      ...
-    }
-  },
-  "diabetic_retinopathy_model": {
-    "metrics": {
-      "accuracy": 0.8143,
-      "quadratic_weighted_kappa": 0.8812,
-      "auc_roc_multiclass": 0.9214,
-      ...
-    }
-  },
-  "skin_disease_model": {
-    "metrics": {
-      "accuracy": 0.8672,
-      "auc_roc_multiclass": 0.9431,
-      "f1_macro": 0.8301,
-      ...
-    }
-  }
-}
+```
+[Specialized ML Sub-Models] (Vision & Tabular Classifiers)
+       ↓ Predictions, Category Labels & Probability Vectors
+[Knowledge Graph Query Engine]
+       ↓ Contextual Evidence Subgraph: Clinical Guidelines, Rules & Comorbid Links
+[Clinical Reasoner (LLM / Deterministic Rule Engine)]
+       ↓ Guideline-Grounded Synthesis & Non-Causal Explanations
+[Structured Clinical Decision-Support Summary & Referrals]
 ```
 
-The `/api/metrics` endpoint reads this file at request time — no server restart needed after updating it.
+### The LLM Does NOT Diagnose Patients
+- **Diagnostic Classification**: Handled strictly by specialized machine learning models (EfficientNet-B0 for fundus/skin images, Logistic Regression + SMOTETomek for diabetes physiological data).
+- **Symbolic Grounding**: The Knowledge Graph acts as an evidence retrieval layer, extracting validated clinical pathways from established guidelines (ADA Standards of Care, AAO Preferred Practice Patterns, AAD guidelines).
+- **Interpretability & Explanation**: The LLM (Gemini / Offline Reasoner) does **not** diagnose. Instead, it translates model probabilities and retrieved graph relationships into transparent, conservative clinical summaries for general practitioners.
 
-### Why KG-Integrated Metrics?
-
-The Knowledge Graph is the bridge that correlates findings across all three models. The **combined metrics** reflect not just individual model accuracy, but the **system-level confidence** in the multi-modal clinical decision pipeline:
-
-- A patient flagged by **2 or more models** (e.g., diabetic + severe DR) activates more KG edges — increasing clinical rule coverage
-- The cross-modal edge count tells you how many inter-disease connections were relevant to this patient's case
-- KG node coverage reflects how much of the clinical ontology was traversed for this patient's findings
-
+### The Non-Causal Association Principle
+Associations retrieved from the Knowledge Graph (e.g., Diabetes ↔ Retinopathy or Hypertension ↔ Microvascular damage) represent **clinical co-occurrences and shared systemic risk factors**, NOT direct single-cause causality. The reasoning layer strictly avoids conflating statistical or biological correlation with direct causal determinism.
 
 ---
 
-## Research Paper Performance Metrics Report
+## Research Paper Performance Metrics & System Audit
 
-For research papers, academic evaluation, and thesis documentation, you need **fixed, reproducible system metrics** derived from training evaluation rather than per-patient inference results.
+For academic publication, peer review, and thesis documentation, system performance is reported from **static, offline training evaluations on frozen held-out test splits** rather than variable per-patient inference calls.
 
-### Generating the One-Time Report
-
-Run the standalone metrics generator:
+### Generating the Publication Report
 
 ```bash
 # View in terminal
 python generate_metrics_report.py
 
-# View in terminal AND save to outputs/metrics_report.txt & outputs/metrics_table.csv
+# View in terminal AND save to outputs/
 python generate_metrics_report.py --save
 ```
 
-### Outputs Generated
+This generates:
+- `outputs/metrics_report.txt`: Complete audit report with ASCII progress bars, confusion matrices, and methodological notes.
+- `outputs/metrics_table.csv`: Delimited table ready to import into LaTeX (`pgfplotstable`/`booktabs`) or paper drafts.
+- `outputs/dr_class_imbalance_table.csv`: Granular per-class metrics highlighting the class imbalance distribution.
 
-| File | Purpose |
-|------|---------|
-| `outputs/metrics_report.txt` | Complete formatted evaluation report with visual bars, confusion matrices, KG topology, and methodology notes |
-| `outputs/metrics_table.csv` | Delimited summary table ready to import directly into Excel, LaTeX `pgfplotstable`, or paper draft tables |
+---
 
-### Updating Metrics After Retraining
+## Methodological Inconsistencies & Detailed Solutions
 
-When you retrain your models in your notebooks:
-1. Open [`model_metrics.json`](model_metrics.json).
-2. Update the `accuracy`, `auc_roc`, `f1_score`, and confusion matrix values with your latest test set evaluation results.
-3. Run `python generate_metrics_report.py --save` once.
-4. Your new fixed results and tables are immediately updated for your publication.
+### 1. Diabetes Test Sample & Confusion Matrix Consistency
+- **Previous Discrepancy**: An exploratory audit draft listed `test_samples: 154` alongside a confusion matrix summing to 194 cases. In that exploratory 75/25 split (194 test cases), **154 was the count of correctly classified instances** (99 TN + 55 TP out of 194 = 79.38% accuracy), which had been erroneously labeled as total test samples.
+- **Definitive 80/20 Test Split**: The formal test set consists of exactly **154 held-out cases** (seed=42):
+  - **True Negative (TN)**: 83
+  - **False Positive (FP)**: 17
+  - **False Negative (FN)**: 15
+  - **True Positive (TP)**: 39
+  - **Total**: $83 + 17 + 15 + 39 = 154$ cases (Exactly 122/154 correct = **79.22% Accuracy**, **84.51% AUC-ROC**).
+
+### 2. Diabetic Retinopathy Class Imbalance & Granular Evaluation
+- **Global Accuracy vs. Class Imbalance**: The 5-class DR model achieves an overall accuracy of **83.43%** (and 81.45% in an independent 550-image audit). However, relying solely on global accuracy masks severe class imbalance:
+  - **No_DR (Grade 0, Support 270)**: 95.9% Recall, 97.7% Precision, 96.8% F1.
+  - **Severe NPDR (Grade 3, Support 26)**: Represents only ~4.9% of the dataset, resulting in **50.0% Recall** (48.28% in 550 audit) and **39.4% Precision** (36.84% in 550 audit).
+  - Consequently, **Macro F1 is 69.54%** (67.40% in audit), reflecting the difficulty of distinguishing severe NPDR from adjacent moderate and proliferative stages.
+- **Why Quadratic Weighted Kappa (QWK) is Primary**: The official benchmark metric for ordinal retinal grading is Quadratic Weighted Kappa ($	ext{QWK} = \mathbf{0.8885}$), which penalizes distant errors heavily while accommodating minor single-grade boundary shifts.
+- **Binary Clinical Referral Triage**: In clinical screening workflows, patients are triaged as **Non-Referable (Grades 0-1)** vs. **Referable (Grades 2-4)**. Under this clinically operative threshold, the model achieves:
+  - **Referable Screening Accuracy**: **95.10%**
+  - **Clinical Sensitivity (TPR)**: **90.91%** (190/209 vision-threatening cases correctly referred)
+  - **Clinical Specificity (TNR)**: **97.83%** (315/322 non-referable cases spared unnecessary burden)
+  - **Screening ROC-AUC**: **0.9893**
+
+### 3. Knowledge Graph Topology vs. Clinical Correctness
+- **81.82% Connectivity Clarification**: The report indicates that 36 of 44 nodes (81.82%) have active connections in the graph. This is a measure of **Topological Graph Connectivity (Structural Completeness)** within the defined ontology.
+- **What It Does NOT Mean**: It is **not** an empirical claim of 81.82% diagnostic accuracy or proof of clinical correctness.
+- **Evidence Provenance**: Graph relationships and clinical decision rules are curated formalisms adapted from clinical practice guidelines (ADA, AAO, AAD). Empirical safety requires continuous multidisciplinary physician validation.
+
+### 4. Reproducibility & Data Provenance Manifest
+Complete provenance details are documented in [`reproducibility_manifest.json`](reproducibility_manifest.json):
+- **Datasets**: PIMA Indians Diabetes ($n=768$), APTOS 2019 / DDR Fundus Benchmark ($n=3826$), HAM10000 + ISIC Dermoscopy ($n=8193$).
+- **Random Seed**: Fixed to `42` across all preprocessing, data splits, and model seeds.
+- **Saved Model Artifacts**: Pre-trained diabetes champion model located in `models/diabetes_model.joblib`.
+- **Reproducible Pipelines**: Training procedures can be independently re-run via `python pima_fixed_training.py` and the respective Jupyter notebooks in `notebooks/`.
