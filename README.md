@@ -171,11 +171,11 @@ The multimodal clinical pipeline is trained and benchmarked against three clinic
 
 ### Dataset Overview & Kaggle Links
 
-| Dataset | Modality | Kaggle Source Link | Records / Images | Classes / Severity Targets | Role in Pipeline |
-|:---|:---|:---|:---:|:---:|:---|
-| **Pima Indians Diabetes** | Tabular Biomarkers | [kumargh/pimaindiansdiabetescsv](https://www.kaggle.com/datasets/kumargh/pimaindiansdiabetescsv) | 768 patients | 2 classes (Non-Diabetic, Diabetic) | Diabetes Risk Classifier (`pima_fixed_training.py`, `models/diabetes_model.joblib`) |
-| **Diabetic Retinopathy 224x224 (2019 Data)** | Retinal Fundus Photography | [sovitrath/diabetic-retinopathy-224x224-2019-data](https://www.kaggle.com/datasets/sovitrath/diabetic-retinopathy-224x224-2019-data/data) | 3,662 images (3,534 deduplicated) | 5 ordinal grades (No_DR, Mild, Moderate, Severe, Proliferate_DR) | 5-Class DR Ordinal Grader & Referral Triage (`models/best_dr_model.pth`) |
-| **Skin Disease Classification Image Dataset** | Dermoscopy Photography | [riyaelizashaju/skin-disease-classification-image-dataset](https://www.kaggle.com/datasets/riyaelizashaju/skin-disease-classification-image-dataset) | 8,193 images | 9 disease classes (including Melanoma & Carcinomas) | Multi-Class Lesion Classifier & Malignancy Biopsy Triage (`models/best_skin_model.pth`) |
+| Dataset                                       | Modality                   | Kaggle Source Link                                                                                                                                   |         Records / Images          |                    Classes / Severity Targets                    | Role in Pipeline                                                                        |
+| :-------------------------------------------- | :------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------: | :--------------------------------------------------------------: | :-------------------------------------------------------------------------------------- |
+| **Pima Indians Diabetes**                     | Tabular Biomarkers         | [kumargh/pimaindiansdiabetescsv](https://www.kaggle.com/datasets/kumargh/pimaindiansdiabetescsv)                                                     |           768 patients            |                2 classes (Non-Diabetic, Diabetic)                | Diabetes Risk Classifier (`pima_fixed_training.py`, `models/diabetes_model.joblib`)     |
+| **Diabetic Retinopathy 224x224 (2019 Data)**  | Retinal Fundus Photography | [sovitrath/diabetic-retinopathy-224x224-2019-data](https://www.kaggle.com/datasets/sovitrath/diabetic-retinopathy-224x224-2019-data/data)            | 3,662 images (3,534 deduplicated) | 5 ordinal grades (No_DR, Mild, Moderate, Severe, Proliferate_DR) | 5-Class DR Ordinal Grader & Referral Triage (`models/best_dr_model.pth`)                |
+| **Skin Disease Classification Image Dataset** | Dermoscopy Photography     | [riyaelizashaju/skin-disease-classification-image-dataset](https://www.kaggle.com/datasets/riyaelizashaju/skin-disease-classification-image-dataset) |           8,193 images            |       9 disease classes (including Melanoma & Carcinomas)        | Multi-Class Lesion Classifier & Malignancy Biopsy Triage (`models/best_skin_model.pth`) |
 
 ### Dataset Details & Acquisition
 
@@ -538,43 +538,3 @@ This generates:
 - `outputs/dr_class_imbalance_table.csv`: Granular per-class metrics highlighting the class imbalance distribution.
 
 ---
-
----
-
-## Methodological Inconsistencies & Detailed Solutions
-
-### 1. Diabetes Test Sample & Confusion Matrix Consistency
-- **Previous Discrepancy**: An exploratory audit draft listed `test_samples: 154` alongside a confusion matrix summing to 194 cases. In that exploratory 75/25 split (194 test cases), **154 was the count of correctly classified instances** (99 TN + 55 TP out of 194 = 79.38% accuracy), which had been erroneously labeled as total test samples.
-- **Definitive 80/20 Test Split**: The formal test set evaluated on the [Pima Indians Diabetes Dataset](https://www.kaggle.com/datasets/kumargh/pimaindiansdiabetescsv) consists of exactly **154 held-out cases** (seed=42):
-  - **True Negative (TN)**: 83
-  - **False Positive (FP)**: 17
-  - **False Negative (FN)**: 15
-  - **True Positive (TP)**: 39
-  - **Total**: $83 + 17 + 15 + 39 = 154$ cases (Exactly 122/154 correct = **79.22% Accuracy**, **84.51% AUC-ROC**).
-
-### 2. Diabetic Retinopathy Class Imbalance & Granular Evaluation
-- **Global Accuracy vs. Class Imbalance**: The 5-class DR model trained on the [Diabetic Retinopathy 224x224 Dataset](https://www.kaggle.com/datasets/sovitrath/diabetic-retinopathy-224x224-2019-data/data) achieves an overall accuracy of **83.43%** (and 81.45% in an independent 550-image audit). However, relying solely on global accuracy masks severe class imbalance:
-  - **No_DR (Grade 0, Support 270)**: 95.9% Recall, 97.7% Precision, 96.8% F1.
-  - **Severe NPDR (Grade 3, Support 26)**: Represents only ~4.9% of the dataset, resulting in **50.0% Recall** (48.28% in 550 audit) and **39.4% Precision** (36.84% in 550 audit).
-  - Consequently, **Macro F1 is 69.54%** (67.40% in audit), reflecting the difficulty of distinguishing severe NPDR from adjacent moderate and proliferative stages.
-- **Why Quadratic Weighted Kappa (QWK) is Primary**: The official benchmark metric for ordinal retinal grading is Quadratic Weighted Kappa ($	ext{QWK} = \mathbf{0.8885}$), which penalizes distant errors heavily while accommodating minor single-grade boundary shifts.
-- **Binary Clinical Referral Triage**: In clinical screening workflows, patients are triaged as **Non-Referable (Grades 0-1)** vs. **Referable (Grades 2-4)**. Under this clinically operative threshold, the model achieves:
-  - **Referable Screening Accuracy**: **95.10%**
-  - **Clinical Sensitivity (TPR)**: **90.91%** (190/209 vision-threatening cases correctly referred)
-  - **Clinical Specificity (TNR)**: **97.83%** (315/322 non-referable cases spared unnecessary burden)
-  - **Screening ROC-AUC**: **0.9893**
-
-### 3. Knowledge Graph Topology vs. Clinical Correctness
-- **81.82% Connectivity Clarification**: The report indicates that 36 of 44 nodes (81.82%) have active connections in the graph. This is a measure of **Topological Graph Connectivity (Structural Completeness)** within the defined ontology.
-- **What It Does NOT Mean**: It is **not** an empirical claim of 81.82% diagnostic accuracy or proof of clinical correctness.
-- **Evidence Provenance**: Graph relationships and clinical decision rules are curated formalisms adapted from clinical practice guidelines (ADA, AAO, AAD). Empirical safety requires continuous multidisciplinary physician validation.
-
-### 4. Reproducibility & Data Provenance Manifest
-Complete provenance details are documented in [`reproducibility_manifest.json`](reproducibility_manifest.json):
-- **Datasets & Links**:
-  - Diabetes: [Pima Indians Diabetes Database on Kaggle](https://www.kaggle.com/datasets/kumargh/pimaindiansdiabetescsv) ($n=768$).
-  - Diabetic Retinopathy: [Diabetic Retinopathy 224x224 (2019 Data) on Kaggle](https://www.kaggle.com/datasets/sovitrath/diabetic-retinopathy-224x224-2019-data/data) ($n=3534$).
-  - Skin Disease: [Skin Disease Classification Image Dataset on Kaggle](https://www.kaggle.com/datasets/riyaelizashaju/skin-disease-classification-image-dataset) ($n=8193$).
-- **Random Seed**: Fixed to `42` across all preprocessing, data splits, and model seeds.
-- **Saved Model Artifacts**: Pre-trained checkpoints located in `models/` (`diabetes_model.joblib`, `best_dr_model.pth`, `best_skin_model.pth`).
-- **Reproducible Pipelines**: Training procedures can be independently re-run via `python pima_fixed_training.py` and the respective Jupyter notebooks in `notebooks/`.
