@@ -4,7 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/Deep%20Learning-PyTorch%202.x-EE4C2C.svg?logo=pytorch&logoColor=white)](https://pytorch.org/)
 
-A multimodal clinical decision support platform combining deep learning computer vision, tabular biomarker risk modeling, an interactive medical knowledge graph, and AI clinical synthesis. AURA-MED provides explainable, guideline-backed diagnostic recommendations and emergency triage screening across metabolic, ophthalmologic, and dermatologic clinical domains.
+A multimodal clinical decision support platform combining deep learning computer vision, tabular biomarker risk modeling, an interactive medical knowledge graph, and AI clinical synthesis. Our system provides explainable, guideline-backed diagnostic recommendations and emergency triage screening across metabolic, ophthalmologic, and dermatologic clinical domains.
 
 ---
 
@@ -13,6 +13,12 @@ A multimodal clinical decision support platform combining deep learning computer
 - [Key Capabilities](#key-capabilities)
 - [System Architecture](#system-architecture)
 - [Model Zoo & Validation](#model-zoo--validation)
+  - [1. Tabular Diabetes Risk Classifier (Pima)](#1-tabular-diabetes-risk-classifier-pima)
+  - [2. Diabetic Retinopathy Classifier (Retinal Fundus)](#2-diabetic-retinopathy-classifier-retinal-fundus)
+  - [3. Skin Lesion Classifier (Dermoscopy)](#3-skin-lesion-classifier-dermoscopy)
+- [Datasets & Benchmarks](#datasets--benchmarks)
+  - [Dataset Overview & Kaggle Links](#dataset-overview--kaggle-links)
+  - [Dataset Details & Acquisition](#dataset-details--acquisition)
   - [1. Tabular Diabetes Risk Classifier (Pima)](#1-tabular-diabetes-risk-classifier-pima)
   - [2. Diabetic Retinopathy Classifier (Retinal Fundus)](#2-diabetic-retinopathy-classifier-retinal-fundus)
   - [3. Skin Lesion Classifier (Dermoscopy)](#3-skin-lesion-classifier-dermoscopy)
@@ -115,6 +121,7 @@ flowchart TB
 
 ### 1. Tabular Diabetes Risk Classifier (Pima)
 
+- **Dataset**: [Pima Indians Diabetes Database on Kaggle](https://www.kaggle.com/datasets/kumargh/pimaindiansdiabetescsv) (`pima-indians-diabetes.csv`, 768 patient records with 8 diagnostic parameters).
 - **Target Task**: Binary classification of 5-year diabetes onset based on 8 diagnostic parameters (Pregnancies, Glucose, Blood Pressure, Skin Thickness, Insulin, BMI, Diabetes Pedigree Function, Age).
 - **Target Leakage Remediation**:
   - _Previous Defect_: Earlier benchmark notebooks applied median imputation grouped by `Outcome` across the entire dataset before train/test split. Approximately 49% of Insulin and Skin Thickness entries were imputed with outcome-dependent constants, resulting in artificially inflated scores (AUC 0.945) unachievable at deployment.
@@ -127,6 +134,7 @@ flowchart TB
 
 ### 2. Diabetic Retinopathy Classifier (Retinal Fundus)
 
+- **Dataset**: [Diabetic Retinopathy 224x224 (2019 Data / APTOS 2019) on Kaggle](https://www.kaggle.com/datasets/sovitrath/diabetic-retinopathy-224x224-2019-data/data) (3,662 retinal fundus images, 3,534 post-deduplication).
 - **Architecture**: `EfficientNet-B0` with custom classification head (Dropout 0.35 -> Linear 256 -> ReLU -> Dropout 0.25 -> Linear 5).
 - **Classes (5)**:
   - `0`: No DR
@@ -139,7 +147,8 @@ flowchart TB
 
 ### 3. Skin Lesion Classifier (Dermoscopy)
 
-- **Architecture**: Deep convolutional classifier (`MobileNetV2` / `ResNet`) trained on dermoscopic datasets (HAM10000).
+- **Dataset**: [Skin Disease Classification Image Dataset on Kaggle](https://www.kaggle.com/datasets/riyaelizashaju/skin-disease-classification-image-dataset) (8,193 dermoscopic images spanning 9 skin disease conditions including melanoma and carcinomas).
+- **Architecture**: Deep convolutional classifier (`EfficientNet-B0` / `MobileNetV2`) trained on dermoscopic datasets.
 - **Classes (9)**:
   - `Actinic keratosis` (Premalignant)
   - `Atopic Dermatitis` (Benign)
@@ -151,6 +160,39 @@ flowchart TB
   - `Squamous cell carcinoma` (Malignant)
   - `Tinea Ringworm Candidiasis` (Fungal)
 - **Malignancy Policy**: Aggregates probabilities across `Melanoma`, `Squamous cell carcinoma`, and `Actinic keratosis`. If aggregate probability exceeds 0.40, a high-severity alert is issued recommending a dermatologist biopsy.
+
+---
+
+---
+
+## Datasets & Benchmarks
+
+The multimodal clinical pipeline is trained and benchmarked against three clinical datasets hosted on Kaggle:
+
+### Dataset Overview & Kaggle Links
+
+| Dataset | Modality | Kaggle Source Link | Records / Images | Classes / Severity Targets | Role in Pipeline |
+|:---|:---|:---|:---:|:---:|:---|
+| **Pima Indians Diabetes** | Tabular Biomarkers | [kumargh/pimaindiansdiabetescsv](https://www.kaggle.com/datasets/kumargh/pimaindiansdiabetescsv) | 768 patients | 2 classes (Non-Diabetic, Diabetic) | Diabetes Risk Classifier (`pima_fixed_training.py`, `models/diabetes_model.joblib`) |
+| **Diabetic Retinopathy 224x224 (2019 Data)** | Retinal Fundus Photography | [sovitrath/diabetic-retinopathy-224x224-2019-data](https://www.kaggle.com/datasets/sovitrath/diabetic-retinopathy-224x224-2019-data/data) | 3,662 images (3,534 deduplicated) | 5 ordinal grades (No_DR, Mild, Moderate, Severe, Proliferate_DR) | 5-Class DR Ordinal Grader & Referral Triage (`models/best_dr_model.pth`) |
+| **Skin Disease Classification Image Dataset** | Dermoscopy Photography | [riyaelizashaju/skin-disease-classification-image-dataset](https://www.kaggle.com/datasets/riyaelizashaju/skin-disease-classification-image-dataset) | 8,193 images | 9 disease classes (including Melanoma & Carcinomas) | Multi-Class Lesion Classifier & Malignancy Biopsy Triage (`models/best_skin_model.pth`) |
+
+### Dataset Details & Acquisition
+
+1. **Pima Indians Diabetes Database**
+   - **Kaggle URL**: [https://www.kaggle.com/datasets/kumargh/pimaindiansdiabetescsv](https://www.kaggle.com/datasets/kumargh/pimaindiansdiabetescsv)
+   - **Description**: Sourced from the National Institute of Diabetes and Digestive and Kidney Diseases (NIDDK), this dataset comprises 768 female patients of Pima Indian heritage. It includes 8 clinical physiological markers: `Pregnancies`, `Glucose`, `BloodPressure`, `SkinThickness`, `Insulin`, `BMI`, `DiabetesPedigreeFunction`, and `Age`, alongside the binary diagnostic `Outcome`.
+   - **Project Integration**: Downloaded as `pima-indians-diabetes.csv` and placed in `knowledge_layer/data/` for training with `python pima_fixed_training.py` under a strict split-first, leakage-free protocol.
+
+2. **Diabetic Retinopathy 224x224 (2019 Data / APTOS 2019 Benchmark)**
+   - **Kaggle URL**: [https://www.kaggle.com/datasets/sovitrath/diabetic-retinopathy-224x224-2019-data/data](https://www.kaggle.com/datasets/sovitrath/diabetic-retinopathy-224x224-2019-data/data)
+   - **Description**: Standardized 224×224 color fundus images from the APTOS 2019 Blindness Detection challenge, graded by clinicians into 5 stages under the International Clinical Diabetic Retinopathy (ICDR) scale: Grade 0 (No DR), Grade 1 (Mild NPDR), Grade 2 (Moderate NPDR), Grade 3 (Severe NPDR), and Grade 4 (Proliferative DR).
+   - **Project Integration**: Utilized in `notebooks/diabetic_retinopathy_classification.ipynb` to train the `EfficientNet-B0` ordinal model. Deduplication removes 128 near-duplicates, producing 3,534 images partitioned into stratified 70% train (2,473), 15% validation (530), and 15% held-out test (531) sets.
+
+3. **Skin Disease Classification Image Dataset**
+   - **Kaggle URL**: [https://www.kaggle.com/datasets/riyaelizashaju/skin-disease-classification-image-dataset](https://www.kaggle.com/datasets/riyaelizashaju/skin-disease-classification-image-dataset)
+   - **Description**: Comprehensive clinical dermoscopy collection derived from HAM10000 and ISIC archives, spanning 9 dermatological diagnostic classes: `Actinic keratosis`, `Atopic Dermatitis`, `Benign keratosis`, `Dermatofibroma`, `Melanocytic nevus`, `Melanoma`, `Squamous cell carcinoma`, `Tinea Ringworm Candidiasis`, and `Vascular lesion`.
+   - **Project Integration**: Utilized in `notebooks/skin_disease_classification.ipynb` to train the `best_skin_model.pth` classifier with focal loss to prioritize sensitivity for high-risk malignant/premalignant conditions (Melanoma, Squamous Cell Carcinoma, Actinic Keratosis).
 
 ---
 
@@ -369,7 +411,7 @@ pip install -r requirements-images.txt --extra-index-url https://download.pytorc
 Create a `.env` file inside `knowledge_layer/`:
 
 ```env
-# Google GenAI API Key for online AI reasoning and Dr. AI chatbot
+# Google GenAI API Key for online AI reasoning and chatbot
 GEMINI_API_KEY=your_api_key_here
 GEMINI_MODEL=gemini-3.5-flash-lite
 
@@ -439,7 +481,7 @@ python run_pipeline.py --input samples/patient_example.json --no-images
 
 > **IMPORTANT MEDICAL NOTICE**
 >
-> AURA-MED is an experimental **Clinical Decision Support (CDS) research prototype** intended solely for investigational, educational, and workflow evaluation purposes.
+> Our project is an experimental **Clinical Decision Support (CDS) research prototype** intended solely for investigational, educational, and workflow evaluation purposes.
 >
 > 1. **Not Autonomous Diagnosis**: Outputs produced by this system (including ML confidence scores, knowledge graph pathways, and AI-generated summaries) do **not** constitute medical diagnoses, clinical treatment plans, or emergency directives.
 > 2. **Physician Oversight Required**: All findings must be independently validated by a licensed physician or specialist before clinical action.
@@ -497,12 +539,13 @@ This generates:
 
 ---
 
+---
+
 ## Methodological Inconsistencies & Detailed Solutions
 
 ### 1. Diabetes Test Sample & Confusion Matrix Consistency
-
 - **Previous Discrepancy**: An exploratory audit draft listed `test_samples: 154` alongside a confusion matrix summing to 194 cases. In that exploratory 75/25 split (194 test cases), **154 was the count of correctly classified instances** (99 TN + 55 TP out of 194 = 79.38% accuracy), which had been erroneously labeled as total test samples.
-- **Definitive 80/20 Test Split**: The formal test set consists of exactly **154 held-out cases** (seed=42):
+- **Definitive 80/20 Test Split**: The formal test set evaluated on the [Pima Indians Diabetes Dataset](https://www.kaggle.com/datasets/kumargh/pimaindiansdiabetescsv) consists of exactly **154 held-out cases** (seed=42):
   - **True Negative (TN)**: 83
   - **False Positive (FP)**: 17
   - **False Negative (FN)**: 15
@@ -510,12 +553,11 @@ This generates:
   - **Total**: $83 + 17 + 15 + 39 = 154$ cases (Exactly 122/154 correct = **79.22% Accuracy**, **84.51% AUC-ROC**).
 
 ### 2. Diabetic Retinopathy Class Imbalance & Granular Evaluation
-
-- **Global Accuracy vs. Class Imbalance**: The 5-class DR model achieves an overall accuracy of **83.43%** (and 81.45% in an independent 550-image audit). However, relying solely on global accuracy masks severe class imbalance:
+- **Global Accuracy vs. Class Imbalance**: The 5-class DR model trained on the [Diabetic Retinopathy 224x224 Dataset](https://www.kaggle.com/datasets/sovitrath/diabetic-retinopathy-224x224-2019-data/data) achieves an overall accuracy of **83.43%** (and 81.45% in an independent 550-image audit). However, relying solely on global accuracy masks severe class imbalance:
   - **No_DR (Grade 0, Support 270)**: 95.9% Recall, 97.7% Precision, 96.8% F1.
   - **Severe NPDR (Grade 3, Support 26)**: Represents only ~4.9% of the dataset, resulting in **50.0% Recall** (48.28% in 550 audit) and **39.4% Precision** (36.84% in 550 audit).
   - Consequently, **Macro F1 is 69.54%** (67.40% in audit), reflecting the difficulty of distinguishing severe NPDR from adjacent moderate and proliferative stages.
-- **Why Quadratic Weighted Kappa (QWK) is Primary**: The official benchmark metric for ordinal retinal grading is Quadratic Weighted Kappa ($ ext{QWK} = \mathbf{0.8885}$), which penalizes distant errors heavily while accommodating minor single-grade boundary shifts.
+- **Why Quadratic Weighted Kappa (QWK) is Primary**: The official benchmark metric for ordinal retinal grading is Quadratic Weighted Kappa ($	ext{QWK} = \mathbf{0.8885}$), which penalizes distant errors heavily while accommodating minor single-grade boundary shifts.
 - **Binary Clinical Referral Triage**: In clinical screening workflows, patients are triaged as **Non-Referable (Grades 0-1)** vs. **Referable (Grades 2-4)**. Under this clinically operative threshold, the model achieves:
   - **Referable Screening Accuracy**: **95.10%**
   - **Clinical Sensitivity (TPR)**: **90.91%** (190/209 vision-threatening cases correctly referred)
@@ -523,16 +565,16 @@ This generates:
   - **Screening ROC-AUC**: **0.9893**
 
 ### 3. Knowledge Graph Topology vs. Clinical Correctness
-
 - **81.82% Connectivity Clarification**: The report indicates that 36 of 44 nodes (81.82%) have active connections in the graph. This is a measure of **Topological Graph Connectivity (Structural Completeness)** within the defined ontology.
 - **What It Does NOT Mean**: It is **not** an empirical claim of 81.82% diagnostic accuracy or proof of clinical correctness.
 - **Evidence Provenance**: Graph relationships and clinical decision rules are curated formalisms adapted from clinical practice guidelines (ADA, AAO, AAD). Empirical safety requires continuous multidisciplinary physician validation.
 
 ### 4. Reproducibility & Data Provenance Manifest
-
 Complete provenance details are documented in [`reproducibility_manifest.json`](reproducibility_manifest.json):
-
-- **Datasets**: PIMA Indians Diabetes ($n=768$), APTOS 2019 / DDR Fundus Benchmark ($n=3826$), HAM10000 + ISIC Dermoscopy ($n=8193$).
+- **Datasets & Links**:
+  - Diabetes: [Pima Indians Diabetes Database on Kaggle](https://www.kaggle.com/datasets/kumargh/pimaindiansdiabetescsv) ($n=768$).
+  - Diabetic Retinopathy: [Diabetic Retinopathy 224x224 (2019 Data) on Kaggle](https://www.kaggle.com/datasets/sovitrath/diabetic-retinopathy-224x224-2019-data/data) ($n=3534$).
+  - Skin Disease: [Skin Disease Classification Image Dataset on Kaggle](https://www.kaggle.com/datasets/riyaelizashaju/skin-disease-classification-image-dataset) ($n=8193$).
 - **Random Seed**: Fixed to `42` across all preprocessing, data splits, and model seeds.
-- **Saved Model Artifacts**: Pre-trained diabetes champion model located in `models/diabetes_model.joblib`.
+- **Saved Model Artifacts**: Pre-trained checkpoints located in `models/` (`diabetes_model.joblib`, `best_dr_model.pth`, `best_skin_model.pth`).
 - **Reproducible Pipelines**: Training procedures can be independently re-run via `python pima_fixed_training.py` and the respective Jupyter notebooks in `notebooks/`.
