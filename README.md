@@ -117,8 +117,8 @@ flowchart TB
 
 - **Target Task**: Binary classification of 5-year diabetes onset based on 8 diagnostic parameters (Pregnancies, Glucose, Blood Pressure, Skin Thickness, Insulin, BMI, Diabetes Pedigree Function, Age).
 - **Target Leakage Remediation**:
-  - *Previous Defect*: Earlier benchmark notebooks applied median imputation grouped by `Outcome` across the entire dataset before train/test split. Approximately 49% of Insulin and Skin Thickness entries were imputed with outcome-dependent constants, resulting in artificially inflated scores (AUC 0.945) unachievable at deployment.
-  - *Remediation (`pima_fixed_training.py`)*:
+  - _Previous Defect_: Earlier benchmark notebooks applied median imputation grouped by `Outcome` across the entire dataset before train/test split. Approximately 49% of Insulin and Skin Thickness entries were imputed with outcome-dependent constants, resulting in artificially inflated scores (AUC 0.945) unachievable at deployment.
+  - _Remediation (`pima_fixed_training.py`)_:
     - Split-first protocol: Training and hold-out test sets (80/20) partitioned with stratification prior to imputation.
     - Zero values in physiological markers (`Glucose`, `BloodPressure`, `SkinThickness`, `Insulin`, `BMI`) converted to `NaN` and imputed using training-set medians only.
     - SMOTETomek resampling applied strictly inside cross-validation training folds.
@@ -135,7 +135,7 @@ flowchart TB
   - `3`: Severe NPDR
   - `4`: Proliferative DR (PDR)
 - **Validation Metric**: **Quadratic Weighted Kappa (QWK) = 0.9116**.
-- **Clinical Policy**: Predictions with Grade $\ge 2$ trigger *Referrable Diabetic Retinopathy*, generating an immediate automated alert for urgent ophthalmologic referral.
+- **Clinical Policy**: Predictions with Grade $\ge 2$ trigger _Referrable Diabetic Retinopathy_, generating an immediate automated alert for urgent ophthalmologic referral.
 
 ### 3. Skin Lesion Classifier (Dermoscopy)
 
@@ -162,14 +162,14 @@ The system features a 44-node, 48-edge medical ontology (`kg_relationships.json`
 
 Nodes are arranged into six concentric clinical domains to ensure structured, overlap-free visual navigation:
 
-| Ring Level | Domain | Color Code | Node Examples |
-|:---|:---|:---|:---|
-| **Ring 1 (Center)** | **Diseases** | Red (`#ef4444`) | `diabetes_t2`, `diabetic_retinopathy`, `melanoma`, `hypertension` |
-| **Ring 2** | **Risk Factors** | Amber (`#f59e0b`) | `hyperglycemia`, `obesity`, `advanced_age`, `family_history_dm` |
-| **Ring 3** | **Findings** | Blue (`#3b82f6`) | `dr_grade0` to `dr_grade4`, `normal_skin` |
-| **Ring 4** | **Complications**| Pink (`#ec4899`) | `diabetic_nephropathy`, `diabetic_foot`, `cardiovascular_disease` |
-| **Ring 5** | **Drugs & Interventions** | Green (`#10b981`) | `metformin`, `insulin_therapy`, `anti_vegf`, `laser_photocoag` |
-| **Ring 6 (Outer)** | **Recommendations** | Purple (`#8b5cf6`)| `rec_fundus_urgent`, `rec_biopsy`, `rec_glucose_control` |
+| Ring Level          | Domain                    | Color Code         | Node Examples                                                     |
+| :------------------ | :------------------------ | :----------------- | :---------------------------------------------------------------- |
+| **Ring 1 (Center)** | **Diseases**              | Red (`#ef4444`)    | `diabetes_t2`, `diabetic_retinopathy`, `melanoma`, `hypertension` |
+| **Ring 2**          | **Risk Factors**          | Amber (`#f59e0b`)  | `hyperglycemia`, `obesity`, `advanced_age`, `family_history_dm`   |
+| **Ring 3**          | **Findings**              | Blue (`#3b82f6`)   | `dr_grade0` to `dr_grade4`, `normal_skin`                         |
+| **Ring 4**          | **Complications**         | Pink (`#ec4899`)   | `diabetic_nephropathy`, `diabetic_foot`, `cardiovascular_disease` |
+| **Ring 5**          | **Drugs & Interventions** | Green (`#10b981`)  | `metformin`, `insulin_therapy`, `anti_vegf`, `laser_photocoag`    |
+| **Ring 6 (Outer)**  | **Recommendations**       | Purple (`#8b5cf6`) | `rec_fundus_urgent`, `rec_biopsy`, `rec_glucose_control`          |
 
 ### Active Decision Pathways
 
@@ -196,13 +196,8 @@ Users can populate clinical data manually, import sample profiles, or upload a f
     "age": 55,
     "sex": "female",
     "clinical_notes": "Patient presents with fatigue, polyuria, and blurry vision in left eye.",
-    "known_conditions": [
-      "hypertension"
-    ],
-    "medications": [
-      "metformin",
-      "amlodipine"
-    ]
+    "known_conditions": ["hypertension"],
+    "medications": ["metformin", "amlodipine"]
   },
   "tabular_data": {
     "Pregnancies": 3,
@@ -219,21 +214,21 @@ Users can populate clinical data manually, import sample profiles, or upload a f
 
 ### Field Dictionary
 
-| Key Path | Data Type | Units / Format | Description & Clinical Validation |
-|:---|:---:|:---:|:---|
-| `patient.age` | Integer | Years (1–120) | Patient chronological age. |
-| `patient.sex` | String | `"female" \| "male" \| "other"` | Biological sex. |
-| `patient.clinical_notes` | String | Free-text | Symptoms, clinical presentation, and history notes. |
-| `patient.known_conditions` | Array of Strings | Free-text list | Diagnosed conditions (e.g. `["hypertension"]`). |
-| `patient.medications` | Array of Strings | Free-text list | Current medications (e.g. `["metformin", "lisinopril"]`). |
-| `tabular_data.Pregnancies` | Integer | Count ($\ge 0$) | Number of pregnancies (`0` for male patients). |
-| `tabular_data.Glucose` | Float | mg/dL | Fasting or 2-hour plasma glucose concentration. |
-| `tabular_data.BloodPressure` | Float | mm Hg | Diastolic blood pressure. |
-| `tabular_data.SkinThickness` | Float | mm | Triceps skin fold thickness (`0` if unavailable). |
-| `tabular_data.Insulin` | Float | $\mu\text{U/mL}$ | 2-Hour serum insulin (`0` if unavailable). |
-| `tabular_data.BMI` | Float | $\text{kg/m}^2$ | Body Mass Index ($\text{weight} / \text{height}^2$). |
-| `tabular_data.DiabetesPedigreeFunction` | Float | Score (0.0–2.5) | Genetic risk pedigree score. |
-| `tabular_data.Age` | Integer | Years | Age entry for tabular feature vector. |
+| Key Path                                |    Data Type     |         Units / Format          | Description & Clinical Validation                         |
+| :-------------------------------------- | :--------------: | :-----------------------------: | :-------------------------------------------------------- |
+| `patient.age`                           |     Integer      |          Years (1–120)          | Patient chronological age.                                |
+| `patient.sex`                           |      String      | `"female" \| "male" \| "other"` | Biological sex.                                           |
+| `patient.clinical_notes`                |      String      |            Free-text            | Symptoms, clinical presentation, and history notes.       |
+| `patient.known_conditions`              | Array of Strings |         Free-text list          | Diagnosed conditions (e.g. `["hypertension"]`).           |
+| `patient.medications`                   | Array of Strings |         Free-text list          | Current medications (e.g. `["metformin", "lisinopril"]`). |
+| `tabular_data.Pregnancies`              |     Integer      |         Count ($\ge 0$)         | Number of pregnancies (`0` for male patients).            |
+| `tabular_data.Glucose`                  |      Float       |              mg/dL              | Fasting or 2-hour plasma glucose concentration.           |
+| `tabular_data.BloodPressure`            |      Float       |              mm Hg              | Diastolic blood pressure.                                 |
+| `tabular_data.SkinThickness`            |      Float       |               mm                | Triceps skin fold thickness (`0` if unavailable).         |
+| `tabular_data.Insulin`                  |      Float       |        $\mu\text{U/mL}$         | 2-Hour serum insulin (`0` if unavailable).                |
+| `tabular_data.BMI`                      |      Float       |         $\text{kg/m}^2$         | Body Mass Index ($\text{weight} / \text{height}^2$).      |
+| `tabular_data.DiabetesPedigreeFunction` |      Float       |         Score (0.0–2.5)         | Genetic risk pedigree score.                              |
+| `tabular_data.Age`                      |     Integer      |              Years              | Age entry for tabular feature vector.                     |
 
 ### Image Upload Guidelines
 
@@ -251,21 +246,24 @@ Users can populate clinical data manually, import sample profiles, or upload a f
 The frontend is served directly by FastAPI as a high-performance single page application (`index.html`, `style.css`, `app.js`).
 
 ### Clean Clinical Aesthetic
+
 - **Zero Emojis or Decorative AI Icons**: Streamlined typography (`Inter` & `Outfit`), standard geometric SVG indicators, and clinical status pills.
 - **Dynamic Biomarker Badges**: Visual warnings appear automatically when values exceed clinical thresholds (e.g., Glucose > 140 mg/dL, BMI > 30.0).
 - **Triage Alert Banner**: Pulsing alert container highlighting urgent referral obligations.
 - **Multi-Class Probability Breakdown**: Detailed horizontal probability distribution bars for each model prediction.
 
 ### Interactive Knowledge Graph Visualizer
+
 - **Mouse Wheel Zoom**: Smooth cursor-focal zoom in and zoom out.
 - **Pan & Move**: Click-and-drag panning across an infinite canvas with `grab` and `grabbing` cursor states.
 - **Node Repositioning**: Interactive drag-and-drop allows repositioning any node to inspect dense relationship clusters.
 - **Full Screen Mode**: Dedicated full-screen modal with high-DPI canvas re-rendering, zoom reset, and keyboard shortcut (`Escape` to exit).
 
 ### Clinical AI Follow-up Consultation
+
 - Embedded chat assistant (`Dr. AI` persona) connected directly to the active diagnosis report.
 - Full context over patient lab values, model confidences, active knowledge graph pathways, and prior recommendations.
-- Quick prompts for immediate clinician inquiries (*"Why urgent ophthalmology?"*, *"Explain skin lesion finding"*, *"Should patient continue metformin?"*).
+- Quick prompts for immediate clinician inquiries (_"Why urgent ophthalmology?"_, _"Explain skin lesion finding"_, _"Should patient continue metformin?"_).
 
 ---
 
@@ -273,16 +271,16 @@ The frontend is served directly by FastAPI as a high-performance single page app
 
 All endpoints return standard JSON responses and are documented via interactive Swagger UI at `/docs`.
 
-| Method | Endpoint | Description | Request Payload | Response Highlights |
-|:---|:---|:---|:---|:---|
-| `GET` | `/` | Web Application UI | None | `text/html` dashboard. |
-| `GET` | `/api/health` | System health check | None | Model statuses, AI engine status, KG node count. |
-| `GET` | `/api/sample` | Sample patient data | None | Clean sample JSON data for testing. |
-| `GET` | `/api/json-template` | JSON schema specification | None | Full JSON template & field dictionary. |
-| `GET` | `/api/download-template` | Download JSON template | None | File download: `patient_template.json`. |
-| `GET` | `/api/kg` | Knowledge Graph ontology | None | Array of `nodes`, `edges`, and `clinical_rules`. |
-| `POST` | `/api/analyze` | Multimodal analysis pipeline | `multipart/form-data`: `patient_json` OR form fields + `eye_image` + `skin_image` | `findings`, `triage_alerts`, `clinical_summary`, `recommendations`, `active_kg`. |
-| `POST` | `/api/chat` | AI follow-up assistant | `application/json`: `{"message": "...", "report": {...}, "history": [...]}` | `{"reply": "...", "timestamp": "..."}` |
+| Method | Endpoint                 | Description                  | Request Payload                                                                   | Response Highlights                                                              |
+| :----- | :----------------------- | :--------------------------- | :-------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| `GET`  | `/`                      | Web Application UI           | None                                                                              | `text/html` dashboard.                                                           |
+| `GET`  | `/api/health`            | System health check          | None                                                                              | Model statuses, AI engine status, KG node count.                                 |
+| `GET`  | `/api/sample`            | Sample patient data          | None                                                                              | Clean sample JSON data for testing.                                              |
+| `GET`  | `/api/json-template`     | JSON schema specification    | None                                                                              | Full JSON template & field dictionary.                                           |
+| `GET`  | `/api/download-template` | Download JSON template       | None                                                                              | File download: `patient_template.json`.                                          |
+| `GET`  | `/api/kg`                | Knowledge Graph ontology     | None                                                                              | Array of `nodes`, `edges`, and `clinical_rules`.                                 |
+| `POST` | `/api/analyze`           | Multimodal analysis pipeline | `multipart/form-data`: `patient_json` OR form fields + `eye_image` + `skin_image` | `findings`, `triage_alerts`, `clinical_summary`, `recommendations`, `active_kg`. |
+| `POST` | `/api/chat`              | AI follow-up assistant       | `application/json`: `{"message": "...", "report": {...}, "history": [...]}`       | `{"reply": "...", "timestamp": "..."}`                                           |
 
 ---
 
@@ -336,7 +334,7 @@ Ensure you are running **Python 3.10** or newer:
 
 ```powershell
 # Navigate to the knowledge_layer directory
-cd C:\Users\kshit\Downloads\Project\knowledge_layer
+cd C:\Users\xxxx\Downloads\Project\knowledge_layer
 
 # Create virtual environment
 python -m venv venv
@@ -373,7 +371,7 @@ Create a `.env` file inside `knowledge_layer/`:
 ```env
 # Google GenAI API Key for online AI reasoning and Dr. AI chatbot
 GEMINI_API_KEY=your_api_key_here
-GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_MODEL=gemini-3.5-flash-lite
 
 # Clinical Thresholds
 DIABETES_ALERT_THRESHOLD=0.50
@@ -440,13 +438,12 @@ python run_pipeline.py --input samples/patient_example.json --no-images
 ## Safety, Ethics & Clinical Disclaimer
 
 > **IMPORTANT MEDICAL NOTICE**
-> 
+>
 > AURA-MED is an experimental **Clinical Decision Support (CDS) research prototype** intended solely for investigational, educational, and workflow evaluation purposes.
-> 
+>
 > 1. **Not Autonomous Diagnosis**: Outputs produced by this system (including ML confidence scores, knowledge graph pathways, and AI-generated summaries) do **not** constitute medical diagnoses, clinical treatment plans, or emergency directives.
 > 2. **Physician Oversight Required**: All findings must be independently validated by a licensed physician or specialist before clinical action.
 > 3. **Identifier-Free & Stateless**: The system deliberately does not store patient identification records, promoting patient privacy and compliance with data governance standards.
-
 
 ---
 
@@ -467,11 +464,13 @@ A fundamental design principle of this platform is the strict separation between
 ```
 
 ### The LLM Does NOT Diagnose Patients
+
 - **Diagnostic Classification**: Handled strictly by specialized machine learning models (EfficientNet-B0 for fundus/skin images, Logistic Regression + SMOTETomek for diabetes physiological data).
 - **Symbolic Grounding**: The Knowledge Graph acts as an evidence retrieval layer, extracting validated clinical pathways from established guidelines (ADA Standards of Care, AAO Preferred Practice Patterns, AAD guidelines).
 - **Interpretability & Explanation**: The LLM (Gemini / Offline Reasoner) does **not** diagnose. Instead, it translates model probabilities and retrieved graph relationships into transparent, conservative clinical summaries for general practitioners.
 
 ### The Non-Causal Association Principle
+
 Associations retrieved from the Knowledge Graph (e.g., Diabetes ↔ Retinopathy or Hypertension ↔ Microvascular damage) represent **clinical co-occurrences and shared systemic risk factors**, NOT direct single-cause causality. The reasoning layer strictly avoids conflating statistical or biological correlation with direct causal determinism.
 
 ---
@@ -491,6 +490,7 @@ python generate_metrics_report.py --save
 ```
 
 This generates:
+
 - `outputs/metrics_report.txt`: Complete audit report with ASCII progress bars, confusion matrices, and methodological notes.
 - `outputs/metrics_table.csv`: Delimited table ready to import into LaTeX (`pgfplotstable`/`booktabs`) or paper drafts.
 - `outputs/dr_class_imbalance_table.csv`: Granular per-class metrics highlighting the class imbalance distribution.
@@ -500,6 +500,7 @@ This generates:
 ## Methodological Inconsistencies & Detailed Solutions
 
 ### 1. Diabetes Test Sample & Confusion Matrix Consistency
+
 - **Previous Discrepancy**: An exploratory audit draft listed `test_samples: 154` alongside a confusion matrix summing to 194 cases. In that exploratory 75/25 split (194 test cases), **154 was the count of correctly classified instances** (99 TN + 55 TP out of 194 = 79.38% accuracy), which had been erroneously labeled as total test samples.
 - **Definitive 80/20 Test Split**: The formal test set consists of exactly **154 held-out cases** (seed=42):
   - **True Negative (TN)**: 83
@@ -509,11 +510,12 @@ This generates:
   - **Total**: $83 + 17 + 15 + 39 = 154$ cases (Exactly 122/154 correct = **79.22% Accuracy**, **84.51% AUC-ROC**).
 
 ### 2. Diabetic Retinopathy Class Imbalance & Granular Evaluation
+
 - **Global Accuracy vs. Class Imbalance**: The 5-class DR model achieves an overall accuracy of **83.43%** (and 81.45% in an independent 550-image audit). However, relying solely on global accuracy masks severe class imbalance:
   - **No_DR (Grade 0, Support 270)**: 95.9% Recall, 97.7% Precision, 96.8% F1.
   - **Severe NPDR (Grade 3, Support 26)**: Represents only ~4.9% of the dataset, resulting in **50.0% Recall** (48.28% in 550 audit) and **39.4% Precision** (36.84% in 550 audit).
   - Consequently, **Macro F1 is 69.54%** (67.40% in audit), reflecting the difficulty of distinguishing severe NPDR from adjacent moderate and proliferative stages.
-- **Why Quadratic Weighted Kappa (QWK) is Primary**: The official benchmark metric for ordinal retinal grading is Quadratic Weighted Kappa ($	ext{QWK} = \mathbf{0.8885}$), which penalizes distant errors heavily while accommodating minor single-grade boundary shifts.
+- **Why Quadratic Weighted Kappa (QWK) is Primary**: The official benchmark metric for ordinal retinal grading is Quadratic Weighted Kappa ($ ext{QWK} = \mathbf{0.8885}$), which penalizes distant errors heavily while accommodating minor single-grade boundary shifts.
 - **Binary Clinical Referral Triage**: In clinical screening workflows, patients are triaged as **Non-Referable (Grades 0-1)** vs. **Referable (Grades 2-4)**. Under this clinically operative threshold, the model achieves:
   - **Referable Screening Accuracy**: **95.10%**
   - **Clinical Sensitivity (TPR)**: **90.91%** (190/209 vision-threatening cases correctly referred)
@@ -521,12 +523,15 @@ This generates:
   - **Screening ROC-AUC**: **0.9893**
 
 ### 3. Knowledge Graph Topology vs. Clinical Correctness
+
 - **81.82% Connectivity Clarification**: The report indicates that 36 of 44 nodes (81.82%) have active connections in the graph. This is a measure of **Topological Graph Connectivity (Structural Completeness)** within the defined ontology.
 - **What It Does NOT Mean**: It is **not** an empirical claim of 81.82% diagnostic accuracy or proof of clinical correctness.
 - **Evidence Provenance**: Graph relationships and clinical decision rules are curated formalisms adapted from clinical practice guidelines (ADA, AAO, AAD). Empirical safety requires continuous multidisciplinary physician validation.
 
 ### 4. Reproducibility & Data Provenance Manifest
+
 Complete provenance details are documented in [`reproducibility_manifest.json`](reproducibility_manifest.json):
+
 - **Datasets**: PIMA Indians Diabetes ($n=768$), APTOS 2019 / DDR Fundus Benchmark ($n=3826$), HAM10000 + ISIC Dermoscopy ($n=8193$).
 - **Random Seed**: Fixed to `42` across all preprocessing, data splits, and model seeds.
 - **Saved Model Artifacts**: Pre-trained diabetes champion model located in `models/diabetes_model.joblib`.
