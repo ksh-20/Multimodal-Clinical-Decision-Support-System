@@ -1,10 +1,7 @@
-"""
-schema.py — Data contracts for the knowledge layer.
-All inter-module data flows through these dataclasses.
-"""
 from __future__ import annotations
 
 import json
+import numpy as np
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from typing import Any, Dict, List, Optional

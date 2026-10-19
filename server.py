@@ -1,11 +1,3 @@
-"""
-server.py — FastAPI backend for the Multimodal Clinical Knowledge Layer.
-Provides REST endpoints for:
-  - Multi-modal inference (/api/analyze, /api/analyze-json)
-  - Medical Knowledge Graph visualization (/api/kg)
-  - Interactive LLM Follow-up Doctor Chatbot (/api/chat)
-  - System health and sample data (/api/health, /api/sample)
-"""
 from __future__ import annotations
 
 import json
@@ -22,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -61,7 +53,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static and samples directories
 STATIC_DIR = BASE_DIR / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 if SAMPLES_DIR.exists():
@@ -127,7 +118,6 @@ def get_sample_patient() -> Dict[str, Any]:
 
 @app.get("/api/json-template")
 def get_json_template() -> Dict[str, Any]:
-    """Returns the expected JSON structure and descriptions for patient data upload."""
     template_data = {
         "patient": {
             "age": 55,
@@ -170,8 +160,6 @@ def get_json_template() -> Dict[str, Any]:
 
 @app.get("/api/download-template")
 def download_json_template():
-    """Serves downloadable patient_template.json directly."""
-    from fastapi.responses import Response
     template_data = {
         "patient": {
             "age": 55,
@@ -200,12 +188,10 @@ def download_json_template():
 
 @app.get("/api/kg")
 def get_knowledge_graph() -> Dict[str, Any]:
-    """Returns the entire Knowledge Graph structure for frontend graph visualization."""
     kg = get_kg()
     with open(KG_JSON_PATH, "r", encoding="utf-8") as f:
         raw_kg = json.load(f)
 
-    # Format nodes with display colors and categories for vis/canvas
     category_colors = {
         "disease": "#ef4444",       # red
         "finding": "#3b82f6",       # blue
@@ -246,7 +232,6 @@ def get_knowledge_graph() -> Dict[str, Any]:
 
 @app.get("/api/metrics")
 def get_system_metrics() -> Dict[str, Any]:
-    """Returns combined system metrics from KG structure and individual model training metrics."""
     kg = get_kg()
     kg_metrics = {}
 
@@ -353,7 +338,6 @@ def get_system_metrics() -> Dict[str, Any]:
 
 
 def _compute_active_subgraph(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Computes which nodes and edges in the KG are active given the current findings."""
     active_node_ids = set()
     active_edge_ids = set()
 
@@ -405,7 +389,6 @@ def _compute_active_subgraph(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
                 else:
                     active_node_ids.add("rec_dermatology_review")
 
-    # Find edges connecting active nodes
     kg = get_kg()
     active_edges = []
     for u, v, data in kg.G.edges(data=True):
@@ -515,7 +498,6 @@ async def analyze_patient(
         return result_dict
 
     finally:
-        # Schedule cleanup of temp uploaded files after request handling
         try:
             shutil.rmtree(temp_dir, ignore_errors=True)
         except Exception:
@@ -530,10 +512,6 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/chat")
 def chat_with_assistant(req: ChatRequest) -> Dict[str, Any]:
-    """
-    Conversational follow-up assistant with access to the patient diagnosis report,
-    ML predictions, Knowledge Graph clinical pathways, and previous chat turns.
-    """
     user_msg = req.message.strip()
     if not user_msg:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
@@ -541,7 +519,6 @@ def chat_with_assistant(req: ChatRequest) -> Dict[str, Any]:
     report = req.report or {}
     history = req.history or []
 
-    # If AI API is configured, generate intelligent response with full context
     if GEMINI_API_KEY:
         try:
             import google.generativeai as genai
@@ -587,7 +564,6 @@ def chat_with_assistant(req: ChatRequest) -> Dict[str, Any]:
         except Exception as e:
             log.warning("AI chat error: %s. Using rule-based fallback response.", e)
 
-    # Intelligent offline fallback if API key not available or rate limited
     findings_summary = []
     for f in report.get("findings", []):
         findings_summary.append(f"{f.get('type')}: {f.get('label')} ({f.get('confidence', 0)*100:.1f}%)")

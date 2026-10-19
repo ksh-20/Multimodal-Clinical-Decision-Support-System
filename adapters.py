@@ -1,9 +1,3 @@
-"""
-adapters.py — Model inference adapters.
-Each adapter loads its model once and converts raw output to a Finding.
-Image models require PyTorch + torchvision (requirements-images.txt).
-The diabetes adapter requires only scikit-learn / joblib (requirements.txt).
-"""
 from __future__ import annotations
 
 import logging
@@ -90,7 +84,6 @@ def _softmax(logits: np.ndarray) -> np.ndarray:
 
 
 def _extract_state_dict(ckpt: Any) -> Any:
-    """Safely extracts state dict whether saved as a full dict or model_state_dict."""
     if isinstance(ckpt, dict):
         for key in ("model_state_dict", "state_dict", "model"):
             if key in ckpt and isinstance(ckpt[key], dict):
@@ -99,11 +92,6 @@ def _extract_state_dict(ckpt: Any) -> Any:
 
 
 class DiabetesAdapter:
-    """
-    Loads the joblib pipeline saved by pima_fixed_training.py (or the notebook).
-    Accepts a dict of raw PIMA feature values and returns a Finding.
-    """
-
     def __init__(self) -> None:
         self._artifact: Optional[Dict[str, Any]] = None
 
@@ -127,15 +115,9 @@ class DiabetesAdapter:
     def _engineer_features(self, X: pd.DataFrame) -> pd.DataFrame:
         d = X.copy()
         d["HOMA_IR"] = (d["Glucose"] * d["Insulin"]) / 405.0
-        d["BMI_Cat"] = pd.cut(
-            d["BMI"], bins=[0, 18.5, 24.9, 29.9, 34.9, 100], labels=[0, 1, 2, 3, 4]
-        ).astype(float)
-        d["Glucose_Cat"] = pd.cut(
-            d["Glucose"], bins=[0, 99, 139, 199, 300], labels=[0, 1, 2, 3]
-        ).astype(float)
-        d["Age_Cat"] = pd.cut(
-            d["Age"], bins=[0, 25, 35, 50, 100], labels=[0, 1, 2, 3]
-        ).astype(float)
+        d["BMI_Cat"] = pd.cut(d["BMI"], bins=[0, 18.5, 24.9, 29.9, 34.9, 100], labels=[0, 1, 2, 3, 4]).astype(float)
+        d["Glucose_Cat"] = pd.cut(d["Glucose"], bins=[0, 99, 139, 199, 300], labels=[0, 1, 2, 3]).astype(float)
+        d["Age_Cat"] = pd.cut(d["Age"], bins=[0, 25, 35, 50, 100], labels=[0, 1, 2, 3]).astype(float)
         d["Metabolic_Score"] = (
             (d["Glucose"] >= 140).astype(int)
             + (d["BMI"] >= 30).astype(int)
@@ -202,11 +184,6 @@ class DiabetesAdapter:
 
 
 class DiabeticRetinopathyAdapter:
-    """
-    Loads best_dr_model.pth (EfficientNet-B0, 5-class DR grading).
-    Accepts a fundus image path and returns a Finding.
-    """
-
     NUM_CLASSES = 5
     CLASS_NAMES = DR_CLASS_NAMES
 
@@ -281,11 +258,6 @@ class DiabeticRetinopathyAdapter:
 
 
 class SkinDiseaseAdapter:
-    """
-    Loads best_skin_model.pth (EfficientNet-B0, 9-class skin disease classification).
-    Accepts a lesion image path and returns a Finding.
-    """
-
     NUM_CLASSES = 9
     CLASS_NAMES = SKIN_CLASS_NAMES
 
@@ -373,6 +345,7 @@ def get_diabetes_adapter() -> DiabetesAdapter:
     global _diabetes_adapter
     if _diabetes_adapter is None:
         _diabetes_adapter = DiabetesAdapter()
+    
     return _diabetes_adapter
 
 
@@ -380,6 +353,7 @@ def get_dr_adapter() -> DiabeticRetinopathyAdapter:
     global _dr_adapter
     if _dr_adapter is None:
         _dr_adapter = DiabeticRetinopathyAdapter()
+    
     return _dr_adapter
 
 
@@ -387,5 +361,5 @@ def get_skin_adapter() -> SkinDiseaseAdapter:
     global _skin_adapter
     if _skin_adapter is None:
         _skin_adapter = SkinDiseaseAdapter()
+    
     return _skin_adapter
-

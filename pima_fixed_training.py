@@ -1,18 +1,3 @@
-"""
-pima_fixed_training.py — Retrains the Pima Indians diabetes model with the
-correct methodology (split-first, no target leakage) and saves the pipeline
-artifact to models/diabetes_model.joblib.
-
-Run from inside knowledge_layer/:
-  python pima_fixed_training.py
-
-Prerequisites:
-  pip install -r requirements.txt
-  Place pima-indians-diabetes.csv in data/
-
-The saved artifact has the same structure as the one produced by the notebook
-(pima_diabetes_ml_benchmark.ipynb), so adapters.py works with both.
-"""
 from __future__ import annotations
 
 import logging

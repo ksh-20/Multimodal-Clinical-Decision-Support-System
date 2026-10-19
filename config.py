@@ -1,8 +1,3 @@
-"""
-config.py — Centralised configuration for the knowledge layer.
-All paths, thresholds, and LLM settings live here.
-LLM: Google Gemini only (google-generativeai SDK).
-"""
 import os
 from pathlib import Path
 

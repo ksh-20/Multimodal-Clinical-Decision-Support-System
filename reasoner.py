@@ -1,26 +1,3 @@
-"""
-reasoner.py — LLM reasoning step (Google Gemini) + offline rule-based fallback.
-
-Architecture:
-  ML Models (Vision / Tabular Classifiers)
-      ↓ Predictions & Probabilities
-  Knowledge Graph Query Engine
-      ↓ Structured Evidence Subgraph & Clinical Rules
-  LLM / Offline Clinical Reasoner
-      ↓ Interpretable Evidence Synthesis & Guideline Guidance
-  Structured Decision-Support Summary
-
-Role of the LLM:
-  The LLM does NOT diagnose diseases directly. It acts as an interpretable
-  evidence-synthesis agent that translates ML model outputs and symbolic
-  Knowledge Graph associations into conservative, guideline-compliant clinical text.
-
-Non-Causal Association Principle:
-  Retrieved associations from the Knowledge Graph (e.g., Diabetes <-> Retinopathy)
-  represent documented clinical co-occurrences and shared systemic risk factors,
-  NOT direct causal determinism. The reasoner strictly avoids conflating correlation
-  with single-cause causality.
-"""
 from __future__ import annotations
 
 import json

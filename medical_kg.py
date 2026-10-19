@@ -1,7 +1,3 @@
-"""
-medical_kg.py — Knowledge graph loader and query interface.
-Backed by kg_relationships.json; uses NetworkX for graph traversal.
-"""
 from __future__ import annotations
 
 import json
@@ -196,4 +192,5 @@ def get_kg() -> MedicalKG:
     global _kg_singleton
     if _kg_singleton is None:
         _kg_singleton = MedicalKG()
+
     return _kg_singleton

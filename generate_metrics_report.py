@@ -1,20 +1,3 @@
-"""
-generate_metrics_report.py
-==========================
-One-time system performance metrics report for the Multimodal Clinical
-Knowledge Layer. Run this script once after training all models to produce
-a fixed, reproducible metrics report suitable for research paper inclusion.
-
-Usage:
-    python generate_metrics_report.py
-    python generate_metrics_report.py --save        # also saves report to outputs/
-
-The report reads ONLY from:
-  - model_metrics.json   : training-time evaluation metrics (static)
-  - kg_relationships.json: knowledge graph structure    (static)
-
-It does NOT depend on any single-patient inference run.
-"""
 from __future__ import annotations
 
 import argparse
@@ -31,7 +14,6 @@ DIVIDER = "-" * 76
 
 
 def make_bar(val: float, total_width: int = 30) -> str:
-    """Creates a visual progress bar using block characters."""
     filled = int(round(val * total_width))
     filled = max(0, min(total_width, filled))
     return "\u2588" * filled + "\u2591" * (total_width - filled)
@@ -95,7 +77,6 @@ def format_report(models: dict, kg: dict) -> str:
     lines.append("  Source: model_metrics.json + kg_relationships.json (Training Evaluation)")
     lines.append(BORDER)
 
-    # ------------------------------------------------------------------ Architecture & Role of LLM
     lines.append("")
     lines.append("[1] SYSTEM ARCHITECTURAL WORKFLOW & ROLE OF THE LLM")
     lines.append(DIVIDER)
@@ -117,7 +98,6 @@ def format_report(models: dict, kg: dict) -> str:
     lines.append("    clinical co-occurrences and shared microvascular/systemic risk factors, NOT direct")
     lines.append("    single-cause determinism. The system strictly distinguishes association from causality.")
 
-    # ------------------------------------------------------------------ KG Structure & Topology
     lines.append("")
     lines.append("[2] KNOWLEDGE GRAPH STRUCTURE & TOPOLOGICAL METRICS")
     lines.append(DIVIDER)
@@ -139,7 +119,6 @@ def format_report(models: dict, kg: dict) -> str:
         lines.append("  • Graph edges formalize clinical practice consensus; clinical veracity requires")
         lines.append("    ongoing physician-in-the-loop oversight and validation.")
 
-    # ------------------------------------------------ Individual models
     lines.append("")
     lines.append("[3] INDIVIDUAL MODEL EVALUATION & GRANULAR SUB-ANALYSIS")
     lines.append(DIVIDER)
@@ -278,7 +257,7 @@ def format_report(models: dict, kg: dict) -> str:
     if sk_data.get("notes"):
         lines.append(f"\n     NOTE: {sk_data['notes']}")
 
-    # ------------------------------------------------ Combined metrics
+    # Combined metrics
     lines.append("")
     lines.append("[4] COMBINED SYSTEM-LEVEL BENCHMARK (Macro-Averaged Across Sub-Models)")
     lines.append(DIVIDER)
@@ -320,7 +299,6 @@ def format_report(models: dict, kg: dict) -> str:
     lines.append(f"  {sep_name:<34} {sep_val:<13} {sep_val:<13} {sep_val:<13}")
     lines.append(f"  {'Overall Combined System (Macro)':<34} {comb_acc*100:.2f}%{'':<6} {comb_auc*100:.2f}%{'':<6} {comb_f1*100:.2f}%")
 
-    # ------------------------------------------------ Reproducibility & Audit
     lines.append("")
     lines.append("[5] REPRODUCIBILITY & SYSTEM AUDIT MANIFEST")
     lines.append(DIVIDER)
@@ -343,9 +321,7 @@ def format_report(models: dict, kg: dict) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Generate comprehensive system metrics report for research paper."
-    )
+    parser = argparse.ArgumentParser(description="Generate comprehensive system metrics report for research paper.")
     parser.add_argument(
         "--save", action="store_true",
         help="Save report to outputs/metrics_report.txt and outputs/metrics_table.csv"
@@ -356,7 +332,6 @@ def main() -> None:
     kg = load_kg_metrics()
     report = format_report(models, kg)
 
-    # Output to stdout safely
     try:
         out = open(sys.stdout.fileno(), mode="w", encoding="utf-8", buffering=1, closefd=False)
         out.write(report)
@@ -387,7 +362,6 @@ def main() -> None:
         csv_path.write_text("\n".join(rows), encoding="utf-8")
         print(f"Summary table CSV saved to: {csv_path}")
 
-        # Granular DR Class-Imbalance CSV
         dr_csv_path = out_dir / "dr_class_imbalance_table.csv"
         dr_rows = ["Grade,ClassName,Support,Precision,Recall,F1_Score,ClinicalScreeningImplication"]
         for r in models["diabetic_retinopathy_model"].get("per_class_metrics", []):

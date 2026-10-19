@@ -1,23 +1,3 @@
-"""
-run_pipeline.py — Main entry point for the knowledge layer pipeline.
-
-Usage examples:
-  # From JSON file:
-  python run_pipeline.py --input samples/patient_example.json
-
-  # Inline arguments:
-  python run_pipeline.py \\
-      --patient-id P001 --age 55 --sex female \\
-      --tabular samples/patient_example.json \\
-      --eye samples/eye.png \\
-      --skin samples/lesion.jpg
-
-  # Save output:
-  python run_pipeline.py --input samples/patient_example.json --save
-
-  # Skip image models (tabular only):
-  python run_pipeline.py --input samples/patient_example.json --no-images
-"""
 from __future__ import annotations
 
 import argparse
@@ -52,10 +32,7 @@ log = logging.getLogger("pipeline")
 VERSION = "1.0.0"
 
 
-def run_pipeline(
-    pipeline_input: PipelineInput,
-    run_images: bool = True,
-) -> PipelineResult:
+def run_pipeline(pipeline_input: PipelineInput, run_images: bool = True,) -> PipelineResult:
     t_start = time.perf_counter()
     patient = pipeline_input.patient
     findings: List[Finding] = []
@@ -93,18 +70,10 @@ def run_pipeline(
 
 
     finding_types = [f.type.value for f in findings]
-    skin_label = next(
-        (f.label for f in findings if f.type.value == "skin_lesion"), None
-    )
-    dr_grade = next(
-        (f.metadata.get("grade") for f in findings if f.type.value == "diabetic_retinopathy"), None
-    )
-    diabetes_positive = next(
-        (f.alert for f in findings if f.type.value == "diabetes_risk"), None
-    )
-    glucose_val = next(
-        (f.metadata.get("glucose") for f in findings if f.type.value == "diabetes_risk"), None
-    )
+    skin_label = next((f.label for f in findings if f.type.value == "skin_lesion"), None)
+    dr_grade = next((f.metadata.get("grade") for f in findings if f.type.value == "diabetic_retinopathy"), None)
+    diabetes_positive = next((f.alert for f in findings if f.type.value == "diabetes_risk"), None)
+    glucose_val = next((f.metadata.get("glucose") for f in findings if f.type.value == "diabetes_risk"), None)
 
     log.info("Querying knowledge graph...")
     kg = get_kg()

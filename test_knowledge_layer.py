@@ -1,23 +1,3 @@
-"""
-test_knowledge_layer.py — Comprehensive test suite for the knowledge layer.
-
-Tests are organised so they run from fastest/no-deps to slowest/GPU-dependent:
-  1. Schema serialization & contract tests
-  2. Config sanity checks
-  3. KG loading and query tests
-  4. Reasoner offline mode tests
-  5. Diabetes adapter unit test (requires diabetes_model.joblib)
-  6. Image adapter unit tests (require PyTorch + model .pth files + test images)
-  7. Full integration pipeline test (requires all models)
-
-Run all tests:
-  python test_knowledge_layer.py
-
-Run specific group (via pattern matching):
-  python test_knowledge_layer.py TestSchema
-  python test_knowledge_layer.py TestKG
-  python test_knowledge_layer.py TestReasoner
-"""
 from __future__ import annotations
 
 import json
