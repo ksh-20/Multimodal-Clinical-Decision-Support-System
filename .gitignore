@@ -21,10 +21,6 @@ models/*.pt
 models/*.joblib
 models/*.pkl
 
-# Data
-data/*.csv
-data/*.parquet
-
 # Additional Folders
 outputs/
 samples/
